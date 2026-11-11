@@ -1,0 +1,391 @@
+name: Build Nura image for xiaomi-raphael
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "packages/ 下的版本目录名"
+        required: true
+        default: "7.3"
+        type: string
+      ui:
+        description: "桌面环境"
+        required: false
+        default: "phosh"
+        type: choice
+        options:
+          - phosh
+          - gnome-mobile
+          - plasma-mobile
+          - sxmo-de-sway
+          - sxmo-de-dwm
+          - sxmo-de-i3
+          - sxmo-de-river
+          - catacomb
+          - lomiri
+          - gnome
+          - plasma-desktop
+          - cosmic
+          - sway
+          - niri
+          - xfce4
+          - lxqt
+          - mate
+          - i3wm
+          - console
+          - buffyboard
+          - fbkeyboard
+      locale:
+        description: "系统语言"
+        required: false
+        default: "zh_CN.UTF-8"
+        type: string
+      timezone:
+        description: "时区"
+        required: false
+        default: "Asia/Shanghai"
+        type: string
+      use_tuna_mirror:
+        description: "使用清华镜像源"
+        required: false
+        default: true
+        type: boolean
+      extra_packages:
+        description: "额外安装的包，逗号分隔；none 表示不装"
+        required: false
+        default: "none"
+        type: string
+      user_name:
+        description: "登录用户名"
+        required: false
+        default: "user"
+        type: string
+      user_password:
+        description: "登录密码"
+        required: false
+        default: "1234"
+        type: string
+      publish_release:
+        description: "发布成 GitHub Release"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  DEVICE: xiaomi-raphael
+  WORK: /home/runner/.local/var/pmbootstrap
+  PMB_VERSION: "3.12.1"
+  # 包定义从这里检出，tag 与 packages/ 下的版本一致
+  DEFS_REPO: https://github.com/GengWei1997/Nura-xiaomi-raphael.git
+  PMAPORTS_REPO: https://gitlab.postmarketos.org/postMarketOS/pmaports.git
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve settings
+        id: cfg
+        env:
+          IN_VERSION: ${{ inputs.version }}
+          IN_UI: ${{ inputs.ui }}
+          IN_LOCALE: ${{ inputs.locale }}
+          IN_TZ: ${{ inputs.timezone }}
+          IN_TUNA: ${{ inputs.use_tuna_mirror }}
+          IN_EXTRA: ${{ inputs.extra_packages }}
+          IN_USERNAME: ${{ inputs.user_name }}
+          IN_PASSWORD: ${{ inputs.user_password }}
+          IN_PUBLISH: ${{ inputs.publish_release }}
+        run: |
+          set -euo pipefail
+          version="${IN_VERSION:-7.3}"
+          ui="${IN_UI:-phosh}"
+          locale="${IN_LOCALE:-zh_CN.UTF-8}"
+          tz="${IN_TZ:-Asia/Shanghai}"
+          tuna="${IN_TUNA:-true}"
+          extra="${IN_EXTRA:-none}"
+          username="${IN_USERNAME:-user}"
+          password="${IN_PASSWORD:-1234}"
+          publish="${IN_PUBLISH:-true}"
+          stamp="$(date -u +%Y%m%d-%H%M%S)"
+
+          {
+            echo "version=$version"
+            echo "ui=$ui"
+            echo "locale=$locale"
+            echo "tz=$tz"
+            echo "tuna=$tuna"
+            echo "extra=$extra"
+            echo "username=$username"
+            echo "password=$password"
+            echo "publish=$publish"
+            echo "outtag=nura-$version-$ui-$stamp"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git openssl python3 python3-pip \
+            kpartx multipath-tools util-linux e2fsprogs \
+            qemu-user-static binfmt-support \
+            android-sdk-libsparse-utils \
+            xz-utils tar
+
+      - name: Enable binfmt_misc
+        run: |
+          # aarch64 chroot 要靠 binfmt 才能在 x86_64 runner 上跑
+          if [ ! -e /proc/sys/fs/binfmt_misc/status ]; then
+            sudo modprobe binfmt_misc || true
+            sudo mount -t binfmt_misc binfmt_misc /proc/sys/fs/binfmt_misc || true
+          fi
+          ls /proc/sys/fs/binfmt_misc/ | grep -qi aarch64 || {
+            echo "::error::binfmt_misc 里没有 aarch64 注册"
+            exit 1
+          }
+
+      - name: Install pmbootstrap
+        run: |
+          pip3 install --user \
+            "git+https://gitlab.postmarketos.org/postMarketOS/pmbootstrap.git@$PMB_VERSION"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Write pmbootstrap config
+        env:
+          UI: ${{ steps.cfg.outputs.ui }}
+          LOCALE: ${{ steps.cfg.outputs.locale }}
+          TZ: ${{ steps.cfg.outputs.tz }}
+          TUNA: ${{ steps.cfg.outputs.tuna }}
+          EXTRA: ${{ steps.cfg.outputs.extra }}
+          USERNAME: ${{ steps.cfg.outputs.username }}
+        run: |
+          # init 是交互式的，直接写配置文件
+          mkdir -p "$WORK/cache_git" "$HOME/.config"
+          echo 8 > "$WORK/version"
+
+          {
+            echo "[pmbootstrap]"
+            echo "device = $DEVICE"
+            echo "kernel = mainline"
+            echo "ui = $UI"
+            echo "user = $USERNAME"
+            echo "hostname = $DEVICE"
+            echo "timezone = $TZ"
+            echo "locale = $LOCALE"
+            echo "is_default_channel = False"
+            echo "service_manager = systemd"
+            echo "extra_packages = $EXTRA"
+            echo "build_pkgs_on_install = False"
+            echo
+            echo "[providers]"
+            echo "postmarketos-base-ui-audio-backend = postmarketos-base-ui-audio-backend-pipewire"
+            echo "postmarketos-usb-moded-default-profile = postmarketos-usb-moded-default-profile-developer"
+          } > "$HOME/.config/pmbootstrap_v3.cfg"
+
+          if [ "$TUNA" = "true" ]; then
+            cat >> "$HOME/.config/pmbootstrap_v3.cfg" <<'EOF'
+
+          [mirrors]
+          alpine = https://mirrors.tuna.tsinghua.edu.cn/alpine/
+          pmaports = https://mirrors.tuna.tsinghua.edu.cn/postmarketOS/
+          systemd = https://mirrors.tuna.tsinghua.edu.cn/postmarketOS/extra-repos/systemd/
+          EOF
+          fi
+
+      - name: Fetch pmaports and apply device overlay
+        env:
+          VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          set -euo pipefail
+          # pull 只更新不克隆，所以手动 clone
+          git clone --depth 1 "$PMAPORTS_REPO" "$WORK/cache_git/pmaports"
+          ap="$WORK/cache_git/pmaports"
+
+          git clone --depth 1 --branch "$VERSION" \
+            "$DEFS_REPO" "$RUNNER_TEMP/device-repo"
+
+          # 上游这三个包是 archived 状态，先删掉再放我们的
+          rm -rf "$ap"/device/archived/device-$DEVICE \
+                 "$ap"/device/archived/firmware-$DEVICE \
+                 "$ap"/device/archived/linux-$DEVICE \
+                 "$ap"/device/testing/device-$DEVICE \
+                 "$ap"/device/testing/firmware-$DEVICE \
+                 "$ap"/device/testing/linux-$DEVICE
+
+          for p in device-$DEVICE firmware-$DEVICE linux-$DEVICE; do
+            test -d "$RUNNER_TEMP/device-repo/$p" || {
+              echo "::error::tag $VERSION 里没有 $p"
+              exit 1
+            }
+            cp -r "$RUNNER_TEMP/device-repo/$p" "$ap/device/testing/"
+          done
+
+      - name: Install prebuilt apks
+        env:
+          VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          set -euo pipefail
+          src="packages/$VERSION"
+          test -d "$src" || {
+            echo "::error::没有 $src 目录"
+            exit 1
+          }
+
+          for p in device-$DEVICE firmware-$DEVICE linux-$DEVICE; do
+            ls "$src/$p"-*.apk >/dev/null 2>&1 || {
+              echo "::error::$src 里缺少 $p"
+              exit 1
+            }
+          done
+          test -f "$src/APKINDEX.tar.gz" || {
+            echo "::error::$src 里缺少 APKINDEX.tar.gz"
+            exit 1
+          }
+          ls "$src"/*.rsa.pub >/dev/null 2>&1 || {
+            echo "::error::$src 里没有签名公钥"
+            exit 1
+          }
+
+          pkgdir="$WORK/packages/edge/aarch64"
+          mkdir -p "$pkgdir"
+          cp "$src"/*.apk "$src"/APKINDEX.tar.gz "$pkgdir"/
+
+      - name: Trust the signing key
+        env:
+          VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          mkdir -p "$WORK/config_apk_keys"
+          cp packages/"$VERSION"/*.rsa.pub "$WORK/config_apk_keys/"
+          ls -l "$WORK/config_apk_keys/"
+
+      - name: Verify trust chain
+        run: |
+          # apk 按包内 .SIGN.RSA.<名字> 去 keys 目录找同名公钥
+          keys="$WORK/config_apk_keys"
+          missing=0
+
+          for apk in "$WORK"/packages/edge/aarch64/*.apk; do
+            signame="$(tar tzf "$apk" 2>/dev/null | grep -m1 '^\.SIGN\.RSA\.' || true)"
+            key="${signame#.SIGN.RSA.}"
+            if [ -z "$key" ] || [ ! -f "$keys/$key" ]; then
+              echo "::error::$(basename "$apk") 缺公钥 ${key:-（无签名）}"
+              missing=1
+            fi
+          done
+
+          [ "$missing" -eq 0 ] || exit 1
+
+      - name: Update package indexes
+        run: |
+          # 只更新用到的两个架构，install 时 apk 直接读现成的索引
+          for arch in x86_64 aarch64; do
+            pmbootstrap -q -y update --arch "$arch" --non-existing
+          done
+
+      - name: Build image
+        env:
+          PASSWORD: ${{ steps.cfg.outputs.password }}
+        run: |
+          pmbootstrap --details-to-stdout -y install --password "$PASSWORD"
+
+      - name: Collect artifacts
+        env:
+          UI: ${{ steps.cfg.outputs.ui }}
+          VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/artifacts"
+          mkdir -p "$out"
+
+          # 原镜像 3.1G，超过 Release 单文件 2 GiB 上限，压缩后再传
+          gzip -c "$WORK/chroot_native/home/pmos/rootfs/$DEVICE.img" \
+            > "$out/$DEVICE-$VERSION-$UI.img.gz"
+
+          cp "$WORK"/packages/edge/aarch64/*.apk "$out"/
+          cp "$WORK/chroot_rootfs_$DEVICE/boot/boot.img" "$out/"
+
+          ls -lh "$out"
+
+      - name: Summary
+        if: success()
+        env:
+          UI: ${{ steps.cfg.outputs.ui }}
+          VERSION: ${{ steps.cfg.outputs.version }}
+        run: |
+          {
+            echo "### 产物"
+            echo
+            echo '```'
+            ls -lh artifacts
+            echo '```'
+            echo
+            echo "刷机（解压出来是 $DEVICE.img）："
+            echo
+            echo '```bash'
+            echo "gunzip $DEVICE-$VERSION-$UI.img.gz"
+            echo "fastboot flash userdata $DEVICE.img"
+            echo "fastboot flash boot boot.img"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nura-${{ env.DEVICE }}-${{ steps.cfg.outputs.version }}-${{ steps.cfg.outputs.ui }}
+          path: artifacts/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Publish release
+        if: success() && steps.cfg.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTTAG: ${{ steps.cfg.outputs.outtag }}
+          VERSION: ${{ steps.cfg.outputs.version }}
+          UI: ${{ steps.cfg.outputs.ui }}
+        run: |
+          set -euo pipefail
+          notes="Nura for Xiaomi Redmi K20 Pro / Mi 9T Pro
+
+          - 版本：\`$VERSION\`，UI：\`$UI\`
+          - 直接用 \`packages/$VERSION/\` 里的 apk 打包，未编译
+
+          刷机（解压出来是 \`$DEVICE.img\`）：
+
+          \`\`\`bash
+          gunzip $DEVICE-$VERSION-$UI.img.gz
+          fastboot flash userdata $DEVICE.img
+          fastboot flash boot boot.img
+          \`\`\`"
+
+          # 资产接口只接受文件，显式列出来避免混进目录
+          files=()
+          while IFS= read -r f; do files+=("$f"); done \
+            < <(find artifacts -maxdepth 1 -type f | sort)
+
+          gh release create "$OUTTAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Nura $VERSION / $UI" \
+            --notes "$notes" \
+            "${files[@]}"
+
+      - name: Show log on failure
+        if: failure()
+        run: |
+          tail -n 200 "$WORK/log.txt" || true
+
+      - name: Cleanup
+        if: always()
+        run: |
+          pmbootstrap -q shutdown || true
+          sudo umount -R "$WORK" 2>/dev/null || true

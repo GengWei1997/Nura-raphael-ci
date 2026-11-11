@@ -1,0 +1,3 @@
+packages/**/*.apk        binary
+packages/**/*.tar.gz     binary
+packages/**/*.rsa.pub    binary
