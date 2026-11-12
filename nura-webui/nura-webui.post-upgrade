@@ -1,0 +1,15 @@
+#!/bin/sh
+# 升级时执行（apk 用 post-install 还是 post-upgrade 取决于旧版本是否已装）。
+# 内容与 post-install 一致，两边改动要同步。
+set -eu
+
+MARKER='nura webui management panel'
+
+if nft list table inet filter >/dev/null 2>&1; then
+	nft list chain inet filter input 2>/dev/null | grep -q "$MARKER" \
+		|| nft insert rule inet filter input tcp dport 16888 accept comment "\"$MARKER\""
+fi
+
+systemctl daemon-reload || true
+systemctl enable nura-webui.service || true
+systemctl restart nura-webui.service || true

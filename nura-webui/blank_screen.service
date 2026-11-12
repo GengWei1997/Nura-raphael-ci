@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto-blank screen 15s after boot
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c '/bin/sleep 15; exec env TERM=linux setterm --blank force </dev/tty1'
+
+[Install]
+WantedBy=multi-user.target

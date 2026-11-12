@@ -1,0 +1,1427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Redmi K20 Pro · 管理面板</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0a0d12;--panel:#131a24;--panel2:#0f151d;--line:#25303e;
+  --text:#e9eff6;--muted:#a8b5c4;--faint:#7f8d9e;
+  --blue:#6cb6ff;--cyan:#63dcd6;--green:#79e3a4;--amber:#ffc766;--red:#ff7c78;
+  --radius:12px;--side:198px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;color:var(--text);
+  background:
+    radial-gradient(ellipse at 10% -10%,#14314c 0,transparent 38%),
+    radial-gradient(ellipse at 100% 0,#0f2b2a 0,transparent 34%),
+    var(--bg);
+  font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Noto Sans CJK SC","Source Han Sans SC","Microsoft YaHei",sans-serif;
+}
+
+.app{display:flex;min-height:100vh}
+
+/* ---------- sidebar ---------- */
+.side{
+  width:var(--side);flex:none;position:sticky;top:0;height:100vh;
+  display:flex;flex-direction:column;gap:18px;padding:15px 11px;
+  border-right:1px solid var(--line);
+  background:linear-gradient(180deg,#0e161fee,#0a1016f2);
+}
+.brand{display:flex;align-items:center;gap:10px;padding:0 4px}
+.mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;
+  background:linear-gradient(150deg,#16405f,#162b38);border:1px solid #2a5570;color:var(--cyan)}
+.mark svg{width:19px;height:19px}
+.brandname{font-size:12.5px;font-weight:650;letter-spacing:-.01em;line-height:1.2}
+.brandsub{font-size:10.5px;letter-spacing:.02em;color:var(--faint);margin-top:1px}
+
+.nav{display:flex;flex-direction:column;gap:2px}
+.navitem{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;
+  color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;
+  background:none;border:1px solid transparent;text-align:left;width:100%;
+}
+.navitem:hover{background:#141d27;color:var(--text)}
+.navitem.active{background:#172432;color:var(--cyan);border-color:#26414f}
+.navitem svg{width:15px;height:15px;flex:none;opacity:.9}
+.navcount{
+  margin-left:auto;font-size:10px;font-variant-numeric:tabular-nums;
+  color:var(--faint);background:#18222e;border-radius:999px;padding:1px 6px;
+}
+.navitem.active .navcount{background:#1d3040;color:var(--cyan)}
+.navcount:empty{display:none}
+
+.sidefoot{margin-top:auto;font-size:10.5px;color:var(--faint);padding:0 6px;line-height:1.5}
+
+/* ---------- content ---------- */
+.content{flex:1;min-width:0;padding:14px 16px 24px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.pagetitle{font-size:16px;font-weight:680;margin:0;letter-spacing:-.01em}
+.pagedesc{font-size:11.5px;color:var(--faint);margin-top:2px}
+.topright{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:12px}
+.live{display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px #79e3a488}
+.action{border:1px solid var(--line);background:#131c26;color:var(--text);border-radius:8px;
+  padding:5px 10px;cursor:pointer;font:inherit}
+.action:hover{border-color:#4d7089;background:#1a2532}
+
+.page[hidden]{display:none}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}
+.card{background:linear-gradient(150deg,#151d27ee,#0f161eee);border:1px solid var(--line);
+  border-radius:var(--radius);padding:12px 14px;min-width:0;box-shadow:0 6px 18px #0003}
+.card.span2{grid-column:span 2}
+.card.span3{grid-column:span 3}
+.card.span4{grid-column:span 4}
+.cardhead{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:9px}
+.cardhead h3{margin:0;font-size:11px;font-weight:680;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.chip{font-size:10px;padding:2px 8px;border-radius:999px;background:#182630;color:var(--cyan);
+  border:1px solid #274450;white-space:nowrap}
+.chip.warn{color:var(--amber);border-color:#4a3c22;background:#241d10}
+.chip.bad{color:var(--red);border-color:#4a2726;background:#231313}
+
+.label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.value{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.unit{font-size:12px;color:var(--muted);font-weight:400}
+.vrow{display:flex;align-items:baseline;gap:5px}
+.sub{color:var(--muted);font-size:11.5px;white-space:pre-line;line-height:1.4}
+.sub:empty{display:none}
+.bar{height:5px;border-radius:6px;background:#243040;overflow:hidden;margin-top:7px}
+.bar>i{display:block;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .3s ease}
+
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin-top:2px}
+.kv.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kv .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.kv .v{font-size:12.5px;margin-top:1px;overflow-wrap:anywhere}
+
+.cores{display:flex;gap:3px;align-items:flex-end;height:34px;margin-top:9px}
+.core{flex:1;height:100%;background:#22303f;border-radius:2px;position:relative;overflow:hidden}
+.core b{position:absolute;left:0;right:0;bottom:0;
+  background:linear-gradient(0deg,var(--blue),var(--cyan));transition:height .3s ease}
+.core.off{opacity:.28}
+.core.sep{margin-left:9px}
+.clusters{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.cluster{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline}
+.cluster .cname{font-size:11.5px;color:var(--muted)}
+.cluster .cfreq{font-size:12px;font-variant-numeric:tabular-nums;text-align:right}
+.cluster .cbar{grid-column:1/-1;height:4px;border-radius:4px;background:#22303f;overflow:hidden}
+.cluster .cbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan))}
+
+.temps{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.temp{border:1px solid #212d3a;background:#0e151d;border-radius:8px;padding:7px 9px}
+.temp .tk{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.temp .tv{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.temp .tlim{font-size:10px;color:var(--faint);margin-left:3px;font-weight:400}
+.temp.warm .tv{color:var(--amber)}
+.temp.hot .tv{color:var(--red)}
+
+.rows{display:flex;flex-direction:column;gap:5px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 46px 62px 68px 58px;
+  gap:9px;align-items:center;font-size:12px}
+.row.header{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);
+  padding-bottom:5px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.rname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d6e0ea}
+.rval{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted);white-space:nowrap}
+.minibar{height:4px;border-radius:4px;background:#22303f;overflow:hidden;min-width:40px}
+.minibar>i{display:block;height:100%;background:var(--blue);border-radius:4px}
+.empty{padding:9px 0;color:var(--muted);font-size:12px}
+
+.containers{display:flex;flex-direction:column;gap:6px}
+.container{display:grid;grid-template-columns:8px minmax(0,1fr) auto auto;gap:10px;align-items:center;
+  border:1px solid #212d3a;background:#0e151d;border-radius:8px;padding:8px 10px}
+.cdot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.cname{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmeta{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cstatus{font-size:10.5px;color:var(--muted);text-align:right;max-width:160px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.svc{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:7px}
+.svcitem{display:flex;align-items:center;gap:7px;border:1px solid #212d3a;background:#0e151d;
+  border-radius:7px;padding:5px 9px;font-size:11.5px}
+.svcitem .sdot{width:6px;height:6px;border-radius:50%;background:var(--green);flex:none}
+.svcitem .sname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#cdd8e3}
+.svcitem.failed{border-color:#4a2726;background:#1d1114}
+.svcitem.failed .sdot{background:var(--red)}
+
+.ifaces{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.iface{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;
+  border:1px solid #212d3a;background:#0e151d;border-radius:7px;padding:6px 9px;font-size:11.5px}
+.iface .iname{color:#cdd8e3;font-weight:600}
+.iface .iaddr{color:var(--muted);font-variant-numeric:tabular-nums}
+
+.act-btn{font:inherit;font-size:10px;color:#e9eff6;background:#1a2431;border:1px solid #3b4c5f;
+  border-radius:6px;padding:2px 8px;cursor:pointer}
+.act-btn:hover:not(:disabled){border-color:var(--amber);color:var(--amber)}
+.act-btn:disabled{opacity:.32;cursor:not-allowed}
+.act-btn.danger{color:var(--red);border-color:#5a2f2e}
+.act-btn.danger:hover:not(:disabled){color:#ff9f9c;border-color:var(--red)}
+.cbtns{display:flex;gap:4px}
+
+/* CPU power mode, sits under the cluster list on the overview card */
+.moderow{display:flex;align-items:center;gap:8px;margin-top:9px;padding-top:8px;
+  border-top:1px solid #1e2833;flex-wrap:wrap}
+.moderow .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:650}
+.modebtns{display:flex;gap:4px;margin-left:auto}
+.modebtn{font:inherit;font-size:11px;color:var(--muted);background:#141d27;
+  border:1px solid #2a3644;border-radius:6px;padding:3px 10px;cursor:pointer}
+.modebtn:hover:not(:disabled){border-color:#4d7089;color:#cdd8e3}
+.modebtn.on{background:#1c3a2c;border-color:#2f6b4c;color:var(--green)}
+.modebtn:disabled{opacity:.4;cursor:not-allowed}
+
+/* settings toggles */
+.toggles{display:flex;flex-direction:column;gap:8px}
+.toggle{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+  border:1px solid #212d3a;background:#0e151d;border-radius:8px;padding:10px 12px}
+.toggle.on{border-color:#26414f;background:#101c23}
+.toggle .tname{font-size:12.5px;font-weight:600;color:#cdd8e3}
+.toggle .tunit{font-size:10.5px;color:var(--faint);margin-top:1px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.toggle .tstate{font-size:10.5px;color:var(--muted);margin-top:3px}
+.switch{position:relative;width:44px;height:24px;flex:none;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:#1a2431;padding:0;transition:background .16s,border-color .16s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:#8fa3b6;transition:transform .16s,background .16s}
+.switch.on{background:#1c3a2c;border-color:#2f6b4c}
+.switch.on::after{transform:translateX(20px);background:var(--green)}
+.switch:disabled{opacity:.35;cursor:not-allowed}
+
+.ptools{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.ptools input{flex:1;min-width:150px}
+
+.fwform{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.fwform input,.fwform select{font-size:12px}
+.fwform #fw-port{width:96px;flex:none}
+.fwform #fw-source{width:170px;flex:none}
+.fwform #fw-comment{flex:1;min-width:130px}
+.fwrow{display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:10px;align-items:center;
+  border:1px solid #212d3a;background:#0e151d;border-radius:7px;padding:6px 9px;font-size:12px}
+.fwrow.managed{border-color:#26414f;background:#101c23}
+.fwrow.editing{border-color:var(--amber);background:#1d1913}
+.fwbtns{display:flex;gap:4px}
+#fw-cancel{border-color:#5a4a2e;color:var(--amber)}
+.fwport{font-variant-numeric:tabular-nums;font-weight:600;color:#cdd8e3}
+.fwdesc{min-width:0}
+.fwdesc .fwsum{color:#cdd8e3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fwdesc .fwcom{font-size:10.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fwtag{font-size:9.5px;color:var(--cyan);border:1px solid #274450;border-radius:999px;padding:0 6px;margin-left:6px}
+
+.footer{margin-top:14px;color:var(--faint);font-size:11px;display:flex;
+  justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@media(max-width:1240px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.card.span3,.card.span4{grid-column:span 3}}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card.span2,.card.span3,.card.span4{grid-column:span 2}}
+@media(max-width:820px){
+  .app{flex-direction:column}
+  .side{
+    width:auto;height:auto;position:sticky;top:0;z-index:6;
+    flex-direction:row;align-items:center;gap:10px;padding:9px 11px;
+    border-right:0;border-bottom:1px solid var(--line);
+    background:#0c131bf5;backdrop-filter:blur(8px);overflow-x:auto;
+  }
+  .brand{gap:8px}.brandsub{display:none}
+  .nav{flex-direction:row;gap:4px}
+  .navitem{padding:6px 10px;white-space:nowrap}
+  .navitem span.nl{display:none}
+  .navcount{margin-left:4px}
+  .sidefoot{display:none}
+  .content{padding:12px}
+}
+@media(max-width:620px){
+  .grid{grid-template-columns:1fr}
+  .card.span2,.card.span3,.card.span4{grid-column:span 1}
+  .row{grid-template-columns:minmax(0,1fr) 42px 58px 60px;gap:7px}
+  .row .rkill{display:none}
+  .kv.three{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .container{grid-template-columns:8px minmax(0,1fr) auto;gap:8px}
+  .container .cstatus{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="side">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="7" y="2" width="10" height="20" rx="2.5"/>
+          <path d="M10.5 5.5h3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brandname" data-i18n="brand">Nura 设备管理</div>
+        <div class="brandsub" data-i18n="title">Redmi K20 Pro</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="navitem" data-page="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="8" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+          <rect x="3" y="15" width="7" height="6" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/>
+        </svg>
+        <span class="nl" data-i18n="navOverview">概览</span>
+      </button>
+      <button class="navitem" data-page="thermals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M14 14.8V5a2 2 0 1 0-4 0v9.8a4 4 0 1 0 4 0z"/><path d="M12 9v6"/>
+        </svg>
+        <span class="nl" data-i18n="navThermals">温度</span>
+        <span class="navcount" id="nav-thermal-count"></span>
+      </button>
+      <button class="navitem" data-page="network">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5 12.5a10.5 10.5 0 0 1 14 0"/>
+          <path d="M8.5 16.2a6 6 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1.2" fill="currentColor"/>
+        </svg>
+        <span class="nl" data-i18n="navNetwork">网络</span>
+      </button>
+      <button class="navitem" data-page="firewall">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M12 3l7 3.5v5c0 4.4-2.9 8.1-7 9.5-4.1-1.4-7-5.1-7-9.5v-5L12 3z"/>
+          <path d="M9.5 12l1.8 1.8L15 10"/>
+        </svg>
+        <span class="nl" data-i18n="navFirewall">防火墙</span>
+        <span class="navcount" id="nav-firewall-count"></span>
+      </button>
+      <button class="navitem" data-page="services">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="6" rx="1.8"/><rect x="3" y="14" width="18" height="6" rx="1.8"/>
+          <path d="M7 7h.01M7 17h.01"/>
+        </svg>
+        <span class="nl" data-i18n="navServices">服务</span>
+        <span class="navcount" id="nav-service-count"></span>
+      </button>
+      <button class="navitem" data-page="containers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5z"/><path d="M3 8.5 12 13l9-4.5M12 13v7"/>
+        </svg>
+        <span class="nl" data-i18n="navContainers">容器</span>
+        <span class="navcount" id="nav-container-count"></span>
+      </button>
+      <button class="navitem" data-page="processes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 5h16M4 12h16M4 19h16"/><circle cx="7" cy="5" r="1.4" fill="currentColor"/>
+          <circle cx="15" cy="12" r="1.4" fill="currentColor"/><circle cx="10" cy="19" r="1.4" fill="currentColor"/>
+        </svg>
+        <span class="nl" data-i18n="navProcesses">进程</span>
+        <span class="navcount" id="nav-process-count"></span>
+      </button>
+      <button class="navitem" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+        <span class="nl" data-i18n="navSettings">设置</span>
+      </button>
+    </nav>
+
+    <div class="sidefoot">
+      <div id="side-host">—</div>
+      <div id="side-access">—</div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="top">
+      <div>
+        <h2 class="pagetitle" id="page-title">—</h2>
+        <div class="pagedesc" id="page-desc">—</div>
+      </div>
+      <div class="topright">
+        <span class="live"><i class="dot" id="dot"></i><span id="connection" data-i18n="connecting">连接中</span></span>
+        <span id="updated">—</span>
+        <select class="action" id="lang" aria-label="Language">
+          <option value="zh">简体中文</option>
+          <option value="en">English</option>
+        </select>
+        <select class="action" id="refresh-interval" aria-label="Refresh interval"></select>
+        <button class="action" id="refresh" data-i18n="refresh">刷新</button>
+      </div>
+    </header>
+
+    <!-- 概览 -->
+    <section class="page" id="page-overview">
+      <div class="grid">
+        <article class="card">
+          <div class="cardhead"><h3 data-i18n="battery">电池</h3><span class="chip" id="battery-chip">—</span></div>
+          <div class="vrow"><span class="value" id="battery">—</span><span class="unit">%</span></div>
+          <div class="bar"><i id="battery-bar"></i></div>
+          <div class="sub" id="battery-sub">—</div>
+        </article>
+
+        <article class="card">
+          <div class="cardhead"><h3 data-i18n="memory">内存</h3><span class="chip" id="memory-chip">—</span></div>
+          <div class="vrow"><span class="value" id="memory">—</span><span class="unit" id="memory-unit">GiB</span></div>
+          <div class="bar"><i id="memory-bar"></i></div>
+          <div class="sub" id="memory-sub">—</div>
+        </article>
+
+        <article class="card">
+          <div class="cardhead"><h3 data-i18n="storage">存储</h3><span class="chip" id="storage-chip">—</span></div>
+          <div class="vrow"><span class="value" id="storage">—</span><span class="unit" id="storage-unit">GiB</span></div>
+          <div class="bar"><i id="storage-bar"></i></div>
+          <div class="sub" id="storage-sub">—</div>
+        </article>
+
+        <article class="card">
+          <div class="cardhead"><h3 data-i18n="uptime">运行时间</h3><span class="chip" id="kernel-chip">—</span></div>
+          <div class="vrow"><span class="value" id="uptime" style="font-size:22px">—</span></div>
+          <div class="sub" id="device-sub">—</div>
+        </article>
+
+        <article class="card span2">
+          <div class="cardhead"><h3 data-i18n="cpu">处理器</h3><span class="chip" id="cpu-chip">—</span></div>
+          <div class="vrow"><span class="value" id="cpu">—</span><span class="unit">%</span>
+            <span class="sub" id="cpu-extra" style="margin-left:auto;text-align:right"></span></div>
+          <div class="bar"><i id="cpu-bar"></i></div>
+          <div class="cores" id="cores"></div>
+          <div class="clusters" id="clusters"></div>
+          <div class="moderow">
+            <span class="k" data-i18n="cpuMode">运行模式</span>
+            <div class="modebtns" id="cpu-modes"></div>
+          </div>
+        </article>
+
+        <article class="card span2">
+          <div class="cardhead"><h3 data-i18n="gpu">图形</h3><span class="chip" id="gpu-chip">—</span></div>
+          <div class="vrow"><span class="value" id="gpu-clock">—</span><span class="unit">MHz</span></div>
+          <div class="bar"><i id="gpu-bar"></i></div>
+          <div class="sub" id="gpu-sub">—</div>
+          <div class="kv" style="margin-top:9px">
+            <div><div class="k" data-i18n="maxfreq">最高频率</div><div class="v" id="gpu-max">—</div></div>
+          </div>
+        </article>
+
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="power">供电详情</h3><span class="chip" id="power-chip">—</span></div>
+          <div class="kv three">
+            <div><div class="k" data-i18n="temp">温度</div><div class="v" id="bat-temp">—</div></div>
+            <div><div class="k" data-i18n="voltage">电压</div><div class="v" id="bat-volt">—</div></div>
+            <div><div class="k" data-i18n="current">电流</div><div class="v" id="bat-curr">—</div></div>
+            <div><div class="k" data-i18n="source">供电</div><div class="v" id="bat-source">—</div></div>
+            <div><div class="k" data-i18n="health">健康度</div><div class="v" id="bat-health">—</div></div>
+            <div><div class="k" data-i18n="technology">电芯</div><div class="v" id="bat-tech">—</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 温度 -->
+    <section class="page" id="page-thermals" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="thermals">温度</h3><span class="chip" id="thermal-chip">—</span></div>
+          <div class="temps" id="temps"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+
+    <!-- 网络 -->
+    <section class="page" id="page-network" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="wifi">Wi-Fi</h3><span class="chip" id="wifi-chip">—</span></div>
+          <div class="kv three">
+            <div><div class="k" data-i18n="ssid">名称</div><div class="v" id="wifi-ssid">—</div></div>
+            <div><div class="k" data-i18n="signal">信号</div><div class="v" id="wifi-signal">—</div></div>
+            <div><div class="k" data-i18n="band">频段</div><div class="v" id="wifi-band">—</div></div>
+            <div><div class="k" data-i18n="channel">信道</div><div class="v" id="wifi-channel">—</div></div>
+            <div><div class="k" data-i18n="address">地址</div><div class="v" id="wifi-ip">—</div></div>
+            <div><div class="k" data-i18n="mac">MAC</div><div class="v" id="wifi-mac">—</div></div>
+            <div><div class="k" data-i18n="usbnet">USB 网络</div><div class="v" id="usb-ip">—</div></div>
+          </div>
+        </article>
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="interfaces">接口</h3><span class="chip" id="iface-chip">—</span></div>
+          <div class="ifaces" id="ifaces"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 防火墙 -->
+    <section class="page" id="page-firewall" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="fwRules">入站规则</h3><span class="chip" id="fw-chip">—</span></div>
+          <div class="fwform">
+            <select class="action" id="fw-proto" aria-label="Protocol">
+              <option value="tcp">TCP</option>
+              <option value="udp">UDP</option>
+            </select>
+            <input class="action" id="fw-port" type="number" min="1" max="65535" inputmode="numeric"
+                   data-i18n-ph="fwPort" placeholder="端口">
+            <input class="action" id="fw-source" type="text" data-i18n-ph="fwSource"
+                   placeholder="来源 CIDR，留空表示任意">
+            <input class="action" id="fw-comment" type="text" maxlength="60" data-i18n-ph="fwComment"
+                   placeholder="备注">
+            <button class="action" id="fw-add" data-i18n="fwAdd">添加</button>
+            <button class="action" id="fw-cancel" hidden data-i18n="fwCancel">取消</button>
+          </div>
+          <div class="sub" id="fw-message" style="margin-bottom:8px"></div>
+          <div class="rows" id="fw-rules"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 服务 -->
+    <section class="page" id="page-services" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="services">服务</h3><span class="chip" id="svc-chip">—</span></div>
+          <div class="svc" id="services"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 容器 -->
+    <section class="page" id="page-containers" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead"><h3 data-i18n="containers">容器</h3><span class="chip" id="docker-chip">—</span></div>
+          <div class="containers" id="containers"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 进程 -->
+    <section class="page" id="page-processes" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead">
+            <h3 data-i18n="processes">进程</h3>
+            <div class="cbtns">
+              <select class="action" id="process-sort" aria-label="Sort"></select>
+              <select class="action" id="process-limit" aria-label="Rows"></select>
+            </div>
+          </div>
+          <div class="ptools">
+            <input class="action" id="process-filter" type="search" data-i18n-ph="filter" placeholder="按名称或 PID 过滤…">
+          </div>
+          <div class="sub" id="process-summary" style="margin-bottom:6px">—</div>
+          <div class="row header" aria-hidden="true">
+            <span data-i18n="colname">进程</span>
+            <span></span>
+            <span style="text-align:right" data-i18n="colcpu">CPU</span>
+            <span style="text-align:right" data-i18n="colram">内存</span>
+            <span style="text-align:right" data-i18n="colaction">操作</span>
+          </div>
+          <div class="rows" id="processes"><div class="empty">—</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <section class="page" id="page-settings" hidden>
+      <div class="grid">
+        <article class="card span4">
+          <div class="cardhead">
+            <h3 data-i18n="navSettings">设置</h3>
+            <span class="chip" id="settings-chip">—</span>
+          </div>
+          <div class="sub" data-i18n="settingsHint" style="margin-bottom:10px">
+            开关直接改设备上的 systemd 单元，改动保留到下次开机。
+          </div>
+          <div class="toggles" id="settings-toggles"><div class="empty">—</div></div>
+          <div class="sub" id="settings-message" style="margin-top:8px"></div>
+        </article>
+      </div>
+    </section>
+
+    <div class="footer">
+      <span id="poll-hint">—</span>
+      <span id="access-hint">—</span>
+    </div>
+  </main>
+</div>
+
+<script>
+const I18N = {
+  zh: {
+    brand: 'Nura 设备管理', title: 'Redmi K20 Pro',
+    connecting: '连接中', connected: '已连接', offline: '离线', paused: '已暂停', refreshing: '刷新中',
+    refresh: '刷新', battery: '电池', memory: '内存', storage: '存储', uptime: '运行时间',
+    cpu: '处理器', gpu: '图形', thermals: '温度', network: '网络', power: '供电详情',
+    services: '服务', containers: '容器', processes: '进程', interfaces: '网络接口',
+    navOverview: '概览', navThermals: '温度', navNetwork: '网络', navFirewall: '防火墙',
+    navServices: '服务', navContainers: '容器', navProcesses: '进程', navSettings: '设置',
+    descOverview: '电池、供电、内存、存储、处理器与图形', descThermals: '全部热区与各自的降频阈值',
+    descNetwork: 'Wi-Fi、USB 网络与接口地址', descFirewall: 'nftables 入站规则，可放行或删除',
+    descServices: 'systemd 单元状态', descContainers: 'Docker 容器与启停',
+    descProcesses: '按 CPU 或内存排序，可结束自己的进程',
+    descSettings: '设备功能开关',
+    fwRules: '入站规则', fwPort: '端口', fwSource: '来源 CIDR，留空表示任意',
+    fwComment: '备注', fwAdd: '添加', fwPolicy: '默认策略',
+    fwPortOk: (p, proto) => `已放行 ${proto}/${p}`,
+    fwConfirmDel: r => `删除规则 #${r.handle}（${r.summary}）？`,
+    fwNoPort: '请填写 1-65535 的端口',
+    fwEmpty: '没有规则', fwUnavailable: 'nftables 不可用',
+    fwDesc: '规则按 nftables 的 handle 删除；带「面板」标记的是本面板管理的规则',
+    governor: '调度器', maxfreq: '最高频率',
+    cpuMode: '运行模式', modePerformance: '性能', modeBalanced: '均衡', modePowersave: '省电',
+    modeApplying: '正在切换模式…',
+    ssid: '名称', signal: '信号', rate: '速率', address: '地址', mac: 'MAC', usbnet: 'USB 网络',
+    band: '频段', channel: '信道',
+    temp: '温度', voltage: '电压', current: '电流', source: '供电', health: '健康度', technology: '电芯',
+    colname: '进程', colcpu: 'CPU', colram: '内存', colaction: '操作',
+    filter: '按名称或 PID 过滤…',
+    charging: '充电中', discharging: '放电中', full: '已充满', notcharging: '未充电',
+    usb: 'USB', ac: '充电器', wireless: '无线充电', batteryonly: '电池供电',
+    up: '已启动', down: '未运行', unknown: '未知', failed: '失败',
+    running: '运行中', stopped: '已停止', none: '无', unavailable: '不可用',
+    kill: '结束', sigkill: '强杀', killable: '结束该进程（SIGTERM）', notyours: '不是当前用户的进程',
+    confirmkill: n => `向 ${n.name} (${n.pid}) 发送 SIGTERM？`,
+    confirmkill9: n => `${n.name} (${n.pid}) 仍未退出，强制结束（SIGKILL）？未保存的数据会丢失。`,
+    containersnone: '没有容器', dockerunavailable: 'Docker 不可用',
+    docker_pause: '暂停', docker_unpause: '恢复', docker_stop: '停止',
+    docker_start: '启动', docker_restart: '重启',
+    noservice: '没有运行中的服务', failedservices: n => `${n} 个服务启动失败`,
+    fwDelete: '删除', fwEdit: '编辑', fwSave: '保存', fwCancel: '取消',
+    fwEditing: h => `正在编辑规则 #${h}，改完点保存`,
+    fwEditUnsupported: '这条规则不是端口放行规则，无法在面板里编辑',
+    rows: n => `显示 ${n} 个进程 · CPU 按单核 100% 计 · 常驻内存`,
+    hottest: n => `最高 ${n.name} ${n.temp} °C`,
+    cores: '核心', mounts: '个挂载点',
+    poll: n => `每 ${n} 秒自动刷新`,
+    access: '面板端口 16888',
+    settingsHint: '开关直接改设备上的 systemd 单元，改动保留到下次开机。',
+    blankName: '自动熄屏',
+    blankDesc: '开机 15 秒后关闭屏幕，减少 OLED 烧屏和待机耗电。开启后从下次开机生效；关闭会立刻停止并取消自启。',
+    blankOn: '已开启', blankOff: '已关闭',
+    unitMissing: '设备上没有这个单元',
+    toggleBusy: '正在切换…',
+  },
+  en: {
+    brand: 'Nura Device Management', title: 'Redmi K20 Pro',
+    connecting: 'Connecting', connected: 'Live', offline: 'Offline', paused: 'Paused', refreshing: 'Refreshing',
+    refresh: 'Refresh', battery: 'Battery', memory: 'Memory', storage: 'Storage', uptime: 'Uptime',
+    cpu: 'CPU', gpu: 'Graphics', thermals: 'Temperatures', network: 'Network', power: 'Power details',
+    services: 'Services', containers: 'Containers', processes: 'Processes', interfaces: 'Interfaces',
+    navOverview: 'Overview', navThermals: 'Thermals', navNetwork: 'Network', navFirewall: 'Firewall',
+    navServices: 'Services', navContainers: 'Containers', navProcesses: 'Processes', navSettings: 'Settings',
+    descOverview: 'Battery, power, memory, storage, CPU and graphics', descThermals: 'Every thermal zone and its throttle trip',
+    descNetwork: 'Wi-Fi, USB networking and interface addresses', descFirewall: 'nftables input rules; open ports or delete rules',
+    descServices: 'systemd unit state', descContainers: 'Docker containers, start and stop',
+    descProcesses: 'Sorted by CPU or RAM; kill your own processes',
+    descSettings: 'Device feature switches',
+    fwRules: 'Input rules', fwPort: 'Port', fwSource: 'Source CIDR, blank for any',
+    fwComment: 'Comment', fwAdd: 'Add', fwPolicy: 'Default policy',
+    fwPortOk: (p, proto) => `Opened ${proto}/${p}`,
+    fwConfirmDel: r => `Delete rule #${r.handle} (${r.summary})?`,
+    fwNoPort: 'Enter a port between 1 and 65535',
+    fwEmpty: 'No rules', fwUnavailable: 'nftables is unavailable',
+    fwDesc: 'Rules are deleted by their nftables handle; ones tagged panel are managed here',
+    governor: 'Governor', maxfreq: 'Max clock',
+    cpuMode: 'Power mode', modePerformance: 'Performance', modeBalanced: 'Balanced', modePowersave: 'Saver',
+    modeApplying: 'Switching mode…',
+    ssid: 'SSID', signal: 'Signal', rate: 'Rate', address: 'Address', mac: 'MAC', usbnet: 'USB network',
+    band: 'Band', channel: 'Channel',
+    temp: 'Temperature', voltage: 'Voltage', current: 'Current', source: 'Source', health: 'Health', technology: 'Chemistry',
+    colname: 'Process', colcpu: 'CPU', colram: 'RAM', colaction: 'Action',
+    filter: 'Filter by name or PID…',
+    charging: 'Charging', discharging: 'Discharging', full: 'Full', notcharging: 'Not charging',
+    usb: 'USB', ac: 'Wall charger', wireless: 'Wireless', batteryonly: 'Battery only',
+    up: 'Up', down: 'Down', unknown: 'Unknown', failed: 'Failed',
+    running: 'running', stopped: 'stopped', none: 'none', unavailable: 'Unavailable',
+    kill: 'Kill', sigkill: 'SIGKILL', killable: 'Send SIGTERM to this process', notyours: 'Not your process',
+    confirmkill: n => `Send SIGTERM to ${n.name} (${n.pid})?`,
+    confirmkill9: n => `${n.name} (${n.pid}) is still running. Force kill (SIGKILL)? Unsaved data is lost.`,
+    containersnone: 'No containers', dockerunavailable: 'Docker is unavailable',
+    docker_pause: 'Pause', docker_unpause: 'Resume', docker_stop: 'Stop',
+    docker_start: 'Start', docker_restart: 'Restart',
+    noservice: 'No running services', failedservices: n => `${n} services failed`,
+    fwDelete: 'Delete', fwEdit: 'Edit', fwSave: 'Save', fwCancel: 'Cancel',
+    fwEditing: h => `Editing rule #${h}; press Save when done`,
+    fwEditUnsupported: 'This is not a port rule, so it cannot be edited here',
+    rows: n => `${n} processes · CPU per core · resident RAM`,
+    hottest: n => `Hottest ${n.name} ${n.temp} °C`,
+    cores: 'cores', mounts: 'mounts',
+    poll: n => `Refreshes every ${n} seconds`,
+    access: 'Panel port 16888',
+    settingsHint: 'Switches act on real systemd units and survive a reboot.',
+    blankName: 'Auto blank screen',
+    blankDesc: 'Blanks the display 15 s after boot to limit OLED burn-in and standby drain. '
+      + 'Turning it on takes effect at the next boot; turning it off also cancels a pending blank.',
+    blankOn: 'On', blankOff: 'Off',
+    unitMissing: 'This unit is missing on the device',
+    toggleBusy: 'Switching…',
+  },
+};
+
+const $ = id => document.getElementById(id);
+const state = { lang: 'zh', page: 'overview', latest: null, termed: {}, dockerBusy: false, firewallEditing: null, toggleBusy: false, modeBusy: false };
+const PAGES = ['overview', 'thermals', 'network', 'firewall', 'services', 'containers', 'processes', 'settings'];
+const PAGE_TITLE_KEY = {
+  overview: 'navOverview', thermals: 'navThermals', network: 'navNetwork', firewall: 'navFirewall',
+  services: 'navServices', containers: 'navContainers', processes: 'navProcesses', settings: 'navSettings',
+};
+const PAGE_DESC_KEY = {
+  overview: 'descOverview', thermals: 'descThermals', network: 'descNetwork', firewall: 'descFirewall',
+  services: 'descServices', containers: 'descContainers', processes: 'descProcesses', settings: 'descSettings',
+};
+
+const t = key => I18N[state.lang][key] ?? key;
+const fmt = {
+  bytes(n) {
+    if (n == null) return '—';
+    const u = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+    let i = 0, v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(i ? 1 : 0)} ${u[i]}`;
+  },
+  gib(n) { return n == null ? '—' : (n / 1073741824).toFixed(2); },
+  num(n, d = 0) { return n == null ? '—' : Number(n).toFixed(d); },
+  uptime(s) {
+    if (s == null) return '—';
+    s = Math.floor(s);
+    const d = Math.floor(s / 86400); s %= 86400;
+    const h = Math.floor(s / 3600); s %= 3600;
+    const m = Math.floor(s / 60);
+    if (state.lang === 'en') {
+      if (d) return `${d}d ${h}h`;
+      if (h) return `${h}h ${m}m`;
+      return `${m}m`;
+    }
+    if (d) return `${d}天 ${h}小时`;
+    if (h) return `${h}小时 ${m}分`;
+    return `${m}分`;
+  },
+};
+
+function text(id, value) { const el = $(id); if (el) el.textContent = value == null ? '—' : value; }
+function bar(id, value) {
+  const el = $(id);
+  if (!el) return;
+  el.style.width = `${Math.max(0, Math.min(100, Number(value) || 0))}%`;
+}
+
+function showPage(page, remember = true) {
+  if (!PAGES.includes(page)) page = 'overview';
+  state.page = page;
+  for (const name of PAGES) {
+    const section = $(`page-${name}`);
+    if (section) section.hidden = name !== page;
+  }
+  document.querySelectorAll('.navitem').forEach(item => {
+    item.classList.toggle('active', item.dataset.page === page);
+  });
+  text('page-title', t(PAGE_TITLE_KEY[page]));
+  text('page-desc', t(PAGE_DESC_KEY[page]));
+  if (remember) {
+    try { localStorage.setItem('nura-page', page); } catch (_) {}
+    if (location.hash !== `#${page}`) history.replaceState(null, '', `#${page}`);
+  }
+  renderProcesses();
+}
+
+function applyLang(lang) {
+  state.lang = lang;
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  $('process-sort').innerHTML = `<option value="cpu">${lang === 'zh' ? '按 CPU' : 'Top CPU'}</option>`
+    + `<option value="ram">${lang === 'zh' ? '按内存' : 'Top RAM'}</option>`;
+  $('process-limit').innerHTML = [10, 20, 50].map(n => `<option value="${n}"${n === 20 ? ' selected' : ''}>${n}</option>`).join('')
+    + `<option value="all">${lang === 'zh' ? '全部' : 'All'}</option>`;
+  $('refresh-interval').innerHTML = [2, 5, 10, 30, 60].map(n => {
+    const label = lang === 'zh' ? `${n} 秒` : `${n} sec`;
+    return `<option value="${n}"${n === 30 ? ' selected' : ''}>${label}</option>`;
+  }).join('');
+  try { localStorage.setItem('nura-lang', lang); } catch (_) {}
+  $('fw-add').textContent = state.firewallEditing ? t('fwSave') : t('fwAdd');
+  showPage(state.page, false);
+  text('access-hint', `${t('access')} · http://${location.host}/`);
+  if (state.latest) render(state.latest);
+}
+
+function renderThermals(zones) {
+  const box = $('temps');
+  box.replaceChildren();
+  text('nav-thermal-count', zones.length || '');
+  if (!zones || !zones.length) {
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = '—'; box.append(e);
+    text('thermal-chip', '—');
+    return;
+  }
+  const hot = zones[0];
+  text('thermal-chip', t('hottest')({ name: hot.name, temp: fmt.num(hot.temp_c, 1) }));
+  for (const zone of zones) {
+    const limit = zone.limit_c || 90;
+    const card = document.createElement('div');
+    card.className = 'temp' + (zone.temp_c >= limit ? ' hot' : zone.temp_c >= limit - 12 ? ' warm' : '');
+    const k = document.createElement('div'); k.className = 'tk'; k.textContent = zone.name;
+    const v = document.createElement('div'); v.className = 'tv'; v.textContent = `${fmt.num(zone.temp_c, 1)} °C`;
+    if (zone.limit_c) {
+      const lim = document.createElement('span'); lim.className = 'tlim'; lim.textContent = `/ ${zone.limit_c}`;
+      v.append(lim);
+    }
+    card.append(k, v);
+    box.append(card);
+  }
+}
+
+function renderCores(cpu) {
+  const box = $('cores');
+  box.replaceChildren();
+  const cores = cpu.cores || [];
+  cores.forEach((value, index) => {
+    const cell = document.createElement('div');
+    cell.className = 'core' + (value == null ? ' off' : '')
+      + (index === 4 || index === 7 ? ' sep' : '');
+    cell.title = `cpu${index} · ${value == null ? 'offline' : Math.round(value) + '%'}`;
+    const fill = document.createElement('b');
+    fill.style.height = `${value || 0}%`;
+    cell.append(fill);
+    box.append(cell);
+  });
+
+  const clusters = $('clusters');
+  clusters.replaceChildren();
+  for (const cluster of cpu.clusters || []) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cluster';
+    const name = document.createElement('span');
+    name.className = 'cname';
+    name.textContent = `${cluster.name} · ${cluster.governor || '—'}`;
+    const freq = document.createElement('span');
+    freq.className = 'cfreq';
+    freq.textContent = `${cluster.cur_mhz ?? '—'} / ${cluster.max_mhz ?? '—'} MHz`;
+    const track = document.createElement('div');
+    track.className = 'cbar';
+    const fill = document.createElement('i');
+    fill.style.width = `${cluster.max_mhz ? Math.min(100, (cluster.cur_mhz || 0) * 100 / cluster.max_mhz) : 0}%`;
+    track.append(fill);
+    wrapper.append(name, freq, track);
+    clusters.append(wrapper);
+  }
+
+  renderCpuModes(cpu.mode);
+}
+
+function renderCpuModes(mode) {
+  const box = $('cpu-modes');
+  box.replaceChildren();
+  // Order is deliberate: slowest/cheapest on the left, full speed on the right.
+  for (const name of ['powersave', 'balanced', 'performance']) {
+    const button = document.createElement('button');
+    button.className = 'modebtn' + (mode === name ? ' on' : '');
+    button.textContent = t(`mode${name[0].toUpperCase()}${name.slice(1)}`);
+    button.disabled = state.modeBusy;
+    button.addEventListener('click', () => setCpuMode(name));
+    box.append(button);
+  }
+}
+
+async function setCpuMode(mode) {
+  if (state.modeBusy || state.latest?.cpu?.mode === mode) return;
+  state.modeBusy = true;
+  renderCpuModes(state.latest?.cpu?.mode);
+  text('cpu-extra', t('modeApplying'));
+  try {
+    const result = await post('/api/cpufreq/set', { mode });
+    if (!result.ok) text('cpu-extra', result.message);
+    // Reflect the request immediately so the buttons do not flash back to the
+    // old mode while the next poll is still in flight.
+    if (result.ok && state.latest?.cpu) state.latest.cpu.mode = mode;
+  } finally {
+    state.modeBusy = false;
+    refresh(true);
+  }
+}
+
+function renderStorage(storage) {
+  const rows = storage.partitions || [];
+  text('storage', fmt.gib(storage.used_bytes));
+  text('storage-unit', state.lang === 'zh' ? 'GiB 已用' : 'GiB used');
+  bar('storage-bar', storage.used_percent);
+  text('storage-chip', `${rows.length} ${t('mounts')}`);
+  text('storage-sub', storage.used_bytes == null ? '—'
+    : `${fmt.bytes(storage.free_bytes)} ${state.lang === 'zh' ? '可用 /' : 'free of'} ${fmt.bytes(storage.total_bytes)}`
+      + ` · ${fmt.num(storage.used_percent, 1)}%`);
+}
+
+function translateStatus(status) {
+  const map = { Charging: 'charging', Discharging: 'discharging', Full: 'full', 'Not charging': 'notcharging' };
+  return map[status] ? t(map[status]) : status;
+}
+
+function renderBattery(battery) {
+  text('battery', battery.percent);
+  bar('battery-bar', battery.percent);
+  const fill = $('battery-bar');
+  const charging = (battery.status || '').toLowerCase() === 'charging';
+  fill.style.background = charging ? 'var(--cyan)'
+    : battery.percent == null ? 'var(--green)'
+    : battery.percent >= 50 ? 'var(--green)'
+    : battery.percent >= 20 ? 'var(--amber)' : 'var(--red)';
+  text('battery-chip', battery.available ? (battery.status || t('unknown')) : t('unavailable'));
+  const parts = [];
+  if (battery.status) parts.push(translateStatus(battery.status));
+  if (battery.source) parts.push(t(battery.source) || battery.source);
+  if (battery.current_ma != null) {
+    parts.push(`${battery.current_ma > 0 ? '+' : ''}${fmt.num(battery.current_ma, 0)} mA`);
+  }
+  text('battery-sub', parts.join(' · ') || t('unavailable'));
+  text('bat-temp', battery.temperature_c == null ? '—' : `${fmt.num(battery.temperature_c, 1)} °C`);
+  text('bat-volt', battery.voltage_v == null ? '—' : `${fmt.num(battery.voltage_v, 3)} V`);
+  text('bat-curr', battery.current_ma == null ? '—'
+    : `${battery.current_ma > 0 ? '+' : ''}${fmt.num(battery.current_ma, 0)} mA`);
+  text('bat-source', battery.plugged ? (t(battery.source) || battery.source) : t('batteryonly'));
+  text('bat-health', battery.health);
+  text('bat-tech', battery.technology);
+  text('power-chip', battery.charge_type && battery.charge_type !== 'N/A' ? battery.charge_type : 'PM8150B');
+}
+
+function renderGPU(gpu) {
+  text('gpu-chip', gpu.model || 'GPU');
+  const clock = gpu.clock_mhz;
+  text('gpu-clock', clock == null ? '—' : Math.round(clock));
+  bar('gpu-bar', clock && gpu.max_clock_mhz ? clock * 100 / gpu.max_clock_mhz : 0);
+  text('gpu-sub', gpu.available
+    ? `${clock == null ? '—' : Math.round(clock)} / ${Math.round(gpu.max_clock_mhz || 0)} MHz`
+    : t('unavailable'));
+  text('gpu-max', gpu.max_clock_mhz == null ? '—' : `${Math.round(gpu.max_clock_mhz)} MHz`);
+}
+
+function renderNetwork(network) {
+  const wifi = network.wifi || {};
+  const usb = network.usb || {};
+  text('wifi-chip', wifi.connected ? t('connected') : (wifi.ssid ? wifi.ssid : t('down')));
+  text('wifi-ssid', wifi.ssid || '—');
+  text('wifi-signal', wifi.signal == null ? '—' : `${wifi.signal}%`);
+  // The negotiated rate is not readable on this driver, and nmcli's RATE is the
+  // interface maximum, so band and channel stand in: those are facts about the
+  // current association.
+  const band = [wifi.band, wifi.channel != null ? `ch${wifi.channel}` : null].filter(Boolean).join(' · ');
+  text('wifi-band', wifi.band || '—');
+  text('wifi-channel', wifi.channel == null ? '—'
+    : `ch${wifi.channel}${wifi.frequency ? ` · ${wifi.frequency} MHz` : ''}`);
+  text('wifi-ip', wifi.ip || '—');
+  text('wifi-mac', wifi.mac || '—');
+  text('usb-ip', usb.ip || '—');
+
+
+  const box = $('ifaces');
+  box.replaceChildren();
+  const interfaces = network.interfaces || [];
+  text('iface-chip', `${interfaces.length}`);
+  if (!interfaces.length) {
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = '—'; box.append(e);
+    return;
+  }
+  for (const item of interfaces) {
+    const row = document.createElement('div');
+    row.className = 'iface';
+    const name = document.createElement('span');
+    name.className = 'iname';
+    name.textContent = item.name;
+    const addr = document.createElement('span');
+    addr.className = 'iaddr';
+    addr.textContent = item.address;
+    row.append(name, addr);
+    box.append(row);
+  }
+}
+
+function renderServices(services) {
+  const box = $('services');
+  box.replaceChildren();
+  const running = services.running || [];
+  const failed = services.failed || [];
+  text('nav-service-count', running.length || '');
+  text('svc-chip', failed.length
+    ? t('failedservices')(failed.length)
+    : `${running.length} ${t('running')}`);
+  $('svc-chip').className = 'chip' + (failed.length ? ' bad' : '');
+  if (!running.length && !failed.length) {
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = t('noservice'); box.append(e);
+    return;
+  }
+  for (const unit of [...failed, ...running]) {
+    const isFailed = (unit.state || '').toLowerCase() === 'failed';
+    const item = document.createElement('div');
+    item.className = 'svcitem' + (isFailed ? ' failed' : '');
+    const dot = document.createElement('i');
+    dot.className = 'sdot';
+    const name = document.createElement('span');
+    name.className = 'sname';
+    name.textContent = unit.name.replace(/\.service$/, '');
+    name.title = unit.description || unit.name;
+    item.append(dot, name);
+    box.append(item);
+  }
+}
+
+function renderContainers(data) {
+  const box = $('containers');
+  box.replaceChildren();
+  if (!data.available) {
+    text('docker-chip', t('dockerunavailable'));
+    $('docker-chip').className = 'chip warn';
+    text('nav-container-count', '');
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = data.error || t('dockerunavailable');
+    box.append(e);
+    return;
+  }
+  const items = data.containers || [];
+  const running = items.filter(c => (c.state || '').toLowerCase() === 'running').length;
+  text('docker-chip', `${running} ${t('running')} · ${items.length}`);
+  $('docker-chip').className = 'chip';
+  text('nav-container-count', items.length || '');
+  if (!items.length) {
+    const e = document.createElement('div'); e.className = 'empty'; e.textContent = t('containersnone'); box.append(e);
+    return;
+  }
+  for (const item of items) {
+    const unit = document.createElement('div');
+    unit.className = 'container';
+    const dot = document.createElement('i');
+    dot.className = 'cdot';
+    dot.style.background = (item.state || '').toLowerCase() === 'running' ? 'var(--green)' : 'var(--amber)';
+    const main = document.createElement('div');
+    main.style.minWidth = '0';
+    const name = document.createElement('div');
+    name.className = 'cname';
+    name.textContent = item.name || '—';
+    const meta = document.createElement('div');
+    meta.className = 'cmeta';
+    meta.textContent = [item.image, item.ports].filter(Boolean).join(' · ') || '—';
+    main.append(name, meta);
+    const status = document.createElement('span');
+    status.className = 'cstatus';
+    status.textContent = item.status || item.state || '—';
+    const buttons = document.createElement('div');
+    buttons.className = 'cbtns';
+    const current = (item.state || '').toLowerCase();
+    const actions = current === 'running' ? ['pause', 'stop']
+      : current === 'paused' ? ['unpause', 'stop'] : ['start'];
+    for (const action of actions) {
+      const button = document.createElement('button');
+      button.className = 'act-btn' + (action === 'stop' ? ' danger' : '');
+      button.textContent = t(`docker_${action}`);
+      button.addEventListener('click', () => dockerAction(item, action));
+      buttons.append(button);
+    }
+    unit.append(dot, main, status, buttons);
+    box.append(unit);
+  }
+}
+
+async function dockerAction(container, action) {
+  if (state.dockerBusy) return;
+  const verb = t(`docker_${action}`);
+  if (!confirm(`${verb} ${container.name}?`)) return;
+  state.dockerBusy = true;
+  try {
+    const result = await post(`/api/docker/${action}`, { name: container.name });
+    note(result.message);
+    refresh(true);
+  } finally {
+    state.dockerBusy = false;
+  }
+}
+
+function renderSettings(settings) {
+  const box = $('settings-toggles');
+  const blank = settings['blank-screen'] || {};
+  const available = blank.available === true;
+  text('settings-chip', available
+    ? (blank.enabled ? t('blankOn') : t('blankOff'))
+    : t('unitMissing'));
+  $('settings-chip').className = 'chip' + (available ? (blank.enabled ? '' : ' warn') : ' bad');
+
+  box.replaceChildren();
+  const row = document.createElement('div');
+  row.className = 'toggle' + (available && blank.enabled ? ' on' : '');
+
+  const left = document.createElement('div');
+  left.style.minWidth = '0';
+  const name = document.createElement('div');
+  name.className = 'tname';
+  name.textContent = t('blankName');
+  const desc = document.createElement('div');
+  desc.className = 'tstate';
+  desc.textContent = available ? t('blankDesc') : t('unitMissing');
+  const unit = document.createElement('div');
+  unit.className = 'tunit';
+  unit.textContent = blank.unit || 'blank_screen.service';
+  left.append(name, desc, unit);
+
+  const sw = document.createElement('button');
+  sw.className = 'switch' + (available && blank.enabled ? ' on' : '');
+  sw.type = 'button';
+  sw.setAttribute('role', 'switch');
+  sw.setAttribute('aria-checked', String(available && blank.enabled));
+  sw.setAttribute('aria-label', t('blankName'));
+  sw.disabled = !available || state.toggleBusy;
+  sw.addEventListener('click', () => setToggle('blank-screen', !(blank.enabled === true)));
+
+  row.append(left, sw);
+  box.append(row);
+}
+
+async function setToggle(name, enabled) {
+  if (state.toggleBusy) return;
+  state.toggleBusy = true;
+  text('settings-message', t('toggleBusy'));
+  try {
+    const result = await post('/api/settings/set', { name, enabled });
+    text('settings-message', result.message);
+    // Update the view immediately; a poll that was already in flight would
+    // otherwise return early and leave the switch showing the old state.
+    if (result.ok && state.latest?.settings?.[name]) {
+      state.latest.settings[name].enabled = enabled;
+    }
+    renderSettings(state.latest?.settings || {});
+    refresh(true);
+  } finally {
+    state.toggleBusy = false;
+    renderSettings(state.latest?.settings || {});
+  }
+}
+
+function renderProcesses() {
+  const box = $('processes');
+  if (!box) return;
+  const processes = state.latest?.processes || [];
+  const key = $('process-sort').value === 'ram' ? 'rss_bytes' : 'cpu_percent';
+  const query = $('process-filter').value.trim().toLowerCase();
+  const matches = processes.filter(p => !query
+    || `${p.name || ''} ${p.pid}`.toLowerCase().includes(query));
+  const limitValue = $('process-limit').value;
+  const limit = limitValue === 'all' ? matches.length : Number(limitValue) || 20;
+  const rows = [...matches].sort((a, b) => (b[key] || 0) - (a[key] || 0) || a.pid - b.pid).slice(0, limit);
+  box.replaceChildren();
+
+  if (!rows.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = $('process-filter').value.trim()
+      ? (state.lang === 'zh' ? '没有匹配的进程' : 'No matching processes')
+      : (state.lang === 'zh' ? '没有进程数据' : 'No process data');
+    box.append(e);
+  } else {
+    for (const item of rows) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      const name = document.createElement('span');
+      name.className = 'rname';
+      name.textContent = `${item.name} · ${item.pid} · ${item.user || '?'}`;
+      name.title = item.cmd || item.name;
+      const track = document.createElement('span');
+      track.className = 'minibar';
+      const fill = document.createElement('i');
+      fill.style.width = `${Math.max(0, Math.min(100, Number(item.cpu_percent) || 0))}%`;
+      track.append(fill);
+      const cpu = document.createElement('span');
+      cpu.className = 'rval';
+      cpu.textContent = item.cpu_percent == null ? '—' : `${fmt.num(item.cpu_percent, 1)}%`;
+      const ram = document.createElement('span');
+      ram.className = 'rval';
+      ram.textContent = fmt.bytes(item.rss_bytes);
+      ram.title = `${fmt.num(item.memory_percent, 1)}%`;
+      const cell = document.createElement('span');
+      cell.className = 'rkill';
+      cell.style.textAlign = 'right';
+      const previous = state.termed[item.pid];
+      const force = previous && previous.start === item.start && Date.now() - previous.at >= 5000;
+      const button = document.createElement('button');
+      button.className = 'act-btn' + (force ? ' danger' : '');
+      button.textContent = force ? t('sigkill') : t('kill');
+      button.disabled = !item.killable;
+      button.title = item.killable ? t('killable') : t('notyours');
+      button.addEventListener('click', () => killProcess(item, force));
+      cell.append(button);
+      row.append(name, track, cpu, ram, cell);
+      box.append(row);
+    }
+  }
+  text('process-summary', t('rows')(rows.length)
+    + (matches.length > rows.length ? ` (${rows.length}/${matches.length})` : ''));
+}
+
+async function killProcess(process, force) {
+  const message = force ? t('confirmkill9')(process) : t('confirmkill')(process);
+  if (!confirm(message)) return;
+  const result = await post('/api/process/kill',
+    { pid: process.pid, start: process.start, signal: force ? 'KILL' : 'TERM' });
+  note(result.message);
+  if (result.ok && !force) state.termed[process.pid] = { start: process.start, at: Date.now() };
+  refresh(true);
+}
+
+function note(message) { text('poll-hint', message); }
+
+function renderFirewall(data) {
+  const box = $('fw-rules');
+  box.replaceChildren();
+  const rules = data.rules || [];
+  text('nav-firewall-count', rules.length || '');
+  const policy = data.policy || '—';
+  text('fw-chip', `${t('fwPolicy')} ${policy} · ${rules.length}`);
+  $('fw-chip').className = 'chip' + (policy === 'drop' ? ' warn' : '');
+
+  if (!data.available) {
+    $('fw-chip').className = 'chip bad';
+    text('fw-chip', t('fwUnavailable'));
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = data.error || t('fwUnavailable');
+    box.append(e);
+    return;
+  }
+  if (!rules.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = t('fwEmpty');
+    box.append(e);
+    return;
+  }
+  for (const rule of rules) {
+    const row = document.createElement('div');
+    row.className = 'fwrow' + (rule.managed ? ' managed' : '');
+
+    const port = document.createElement('span');
+    port.className = 'fwport';
+    const match = /port (\d+)/.exec(rule.summary);
+    port.textContent = match ? match[1] : '—';
+
+    const desc = document.createElement('div');
+    desc.className = 'fwdesc';
+    const summary = document.createElement('div');
+    summary.className = 'fwsum';
+    summary.textContent = rule.summary;
+    const comment = document.createElement('div');
+    comment.className = 'fwcom';
+    comment.textContent = rule.comment || `#${rule.handle}`;
+    if (rule.managed) {
+      const tag = document.createElement('span');
+      tag.className = 'fwtag';
+      tag.textContent = state.lang === 'zh' ? '面板' : 'panel';
+      comment.append(tag);
+    }
+    desc.append(summary, comment);
+
+    const del = document.createElement('button');
+    del.className = 'act-btn danger';
+    del.textContent = t('fwDelete');
+    del.title = `handle ${rule.handle}`;
+    del.addEventListener('click', () => deleteRule(rule));
+
+    const buttons = document.createElement('div');
+    buttons.className = 'fwbtns';
+    const edit = document.createElement('button');
+    edit.className = 'act-btn';
+    edit.textContent = t('fwEdit');
+    edit.title = `handle ${rule.handle}`;
+    edit.disabled = rule.protocol == null || rule.port == null;
+    edit.addEventListener('click', () => startEdit(rule));
+    buttons.append(edit, del);
+
+    if (state.firewallEditing?.handle === rule.handle) row.classList.add('editing');
+    row.append(port, desc, buttons);
+    box.append(row);
+  }
+}
+
+async function addRule() {
+  const port = Number($('fw-port').value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    text('fw-message', t('fwNoPort'));
+    return;
+  }
+  const body = {
+    port,
+    protocol: $('fw-proto').value,
+    source: $('fw-source').value.trim(),
+    comment: $('fw-comment').value.trim(),
+  };
+  const editing = state.firewallEditing;
+  const result = editing
+    ? await post('/api/firewall/update', {
+        handle: editing.handle, managed: editing.managed, ...body,
+      })
+    : await post('/api/firewall/add', body);
+  text('fw-message', result.message);
+  if (result.ok) clearForm();
+  refresh(true);
+}
+
+function clearForm() {
+  state.firewallEditing = null;
+  $('fw-port').value = '';
+  $('fw-comment').value = '';
+  $('fw-source').value = '';
+  $('fw-add').textContent = t('fwAdd');
+  $('fw-cancel').hidden = true;
+  document.querySelectorAll('.fwrow.editing').forEach(row => row.classList.remove('editing'));
+}
+
+function startEdit(rule) {
+  state.firewallEditing = { handle: rule.handle, managed: rule.managed };
+  $('fw-proto').value = rule.protocol || 'tcp';
+  $('fw-port').value = rule.port ?? '';
+  $('fw-source').value = rule.source || '';
+  $('fw-comment').value = rule.managed
+    ? (rule.comment || '').replace(/^nura webui:?\s*/, '')
+    : (rule.comment || '');
+  $('fw-add').textContent = t('fwSave');
+  $('fw-cancel').hidden = false;
+  text('fw-message', t('fwEditing')(rule.handle));
+  $('fw-port').focus();
+  renderFirewall(state.latest?.firewall || {});
+}
+
+async function deleteRule(rule) {
+  if (!confirm(t('fwConfirmDel')(rule))) return;
+  const result = await post('/api/firewall/delete', { handle: rule.handle });
+  text('fw-message', result.message);
+  if (state.firewallEditing?.handle === rule.handle) clearForm();
+  refresh(true);
+}
+
+function render(data) {
+  state.latest = data;
+
+  const device = data.device || {};
+  text('kernel-chip', device.kernel || '—');
+  text('uptime', fmt.uptime(data.uptime_seconds));
+  text('device-sub', [device.soc, device.hostname, device.login_user && `@${device.login_user}`]
+    .filter(Boolean).join(' · '));
+  text('side-host', device.hostname || '—');
+
+  renderBattery(data.battery || {});
+
+  const memory = data.memory || {};
+  text('memory', memory.used_bytes == null ? '—' : fmt.gib(memory.used_bytes));
+  text('memory-unit', `GiB / ${fmt.gib(memory.total_bytes)}`);
+  bar('memory-bar', memory.used_percent);
+  text('memory-chip', `${fmt.num(memory.used_percent, 1)}%`);
+  text('memory-sub', memory.used_bytes == null ? '—'
+    : `${fmt.bytes(memory.used_bytes)} ${state.lang === 'zh' ? '已用' : 'used'}`
+      + ` · ${fmt.bytes(memory.available_bytes)} ${state.lang === 'zh' ? '可用' : 'available'}`);
+
+  renderStorage(data.storage || {});
+  renderCores(data.cpu || {});
+  renderGPU(data.gpu || {});
+  renderThermals(data.thermals || []);
+  renderNetwork(data.network || {});
+  renderFirewall(data.firewall || {});
+  renderServices(data.services || {});
+  renderContainers(data.containers || {});
+  renderSettings(data.settings || {});
+
+  const cpu = data.cpu || {};
+  text('cpu', cpu.percent);
+  bar('cpu-bar', cpu.percent);
+  const online = (cpu.cores || []).filter(v => v != null).length;
+  text('cpu-chip', `${online}/${cpu.logical_cores || '—'} ${t('cores')}`);
+  text('cpu-extra', cpu.loadavg == null ? ''
+    : `${state.lang === 'zh' ? '负载' : 'load'} ${fmt.num(cpu.loadavg, 2)}`);
+
+  text('nav-process-count', (data.processes || []).length || '');
+  renderProcesses();
+
+  const time = data.collected_at ? new Date(data.collected_at) : new Date();
+  text('updated', time.toLocaleTimeString());
+  text('connection', t('connected'));
+  $('dot').style.background = 'var(--green)';
+  $('dot').style.boxShadow = '0 0 10px #79e3a488';
+}
+
+async function post(path, body) {
+  try {
+    const response = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return await response.json();
+  } catch (error) {
+    return { ok: false, message: String(error) };
+  }
+}
+
+let inFlight = false;
+async function refresh(force = false) {
+  if (document.hidden && !force) return;
+  if (inFlight) return;
+  inFlight = true;
+  text('connection', t('refreshing'));
+  try {
+    const response = await fetch('/api/status', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    render(await response.json());
+  } catch (error) {
+    text('connection', t('offline'));
+    $('dot').style.background = 'var(--red)';
+    $('dot').style.boxShadow = '0 0 10px #ff7c7888';
+    text('updated', error.message);
+  } finally {
+    inFlight = false;
+  }
+}
+
+let refreshTimer;
+function scheduleRefresh() {
+  const seconds = Number($('refresh-interval').value) || 30;
+  clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => refresh(), seconds * 1000);
+  text('poll-hint', t('poll')(seconds));
+}
+
+(() => {
+  let savedLang = null, savedPage = null, savedInterval = null;
+  try {
+    savedLang = localStorage.getItem('nura-lang');
+    savedPage = localStorage.getItem('nura-page');
+    savedInterval = localStorage.getItem('nura-interval');
+  } catch (_) {}
+
+  $('lang').value = savedLang === 'en' || savedLang === 'zh' ? savedLang : 'zh';
+  const initialPage = (location.hash || '').slice(1);
+  showPage(PAGES.includes(initialPage) ? initialPage : (PAGES.includes(savedPage) ? savedPage : 'overview'), false);
+  applyLang($('lang').value);
+
+  document.querySelectorAll('.navitem').forEach(item => {
+    item.addEventListener('click', () => showPage(item.dataset.page));
+  });
+  addEventListener('hashchange', () => showPage((location.hash || '').slice(1), false));
+
+  $('lang').addEventListener('change', () => applyLang($('lang').value));
+  $('refresh').addEventListener('click', () => refresh(true));
+  $('refresh-interval').addEventListener('change', () => {
+    try { localStorage.setItem('nura-interval', $('refresh-interval').value); } catch (_) {}
+    scheduleRefresh();
+    refresh(true);
+  });
+  if (savedInterval && [...$('refresh-interval').options].some(o => o.value === savedInterval)) {
+    $('refresh-interval').value = savedInterval;
+  }
+
+  $('process-sort').addEventListener('change', renderProcesses);
+  $('process-limit').addEventListener('change', renderProcesses);
+  $('process-filter').addEventListener('input', renderProcesses);
+  $('fw-add').addEventListener('click', addRule);
+  $('fw-cancel').addEventListener('click', () => { clearForm(); text('fw-message', ''); });
+  $('fw-port').addEventListener('keydown', event => { if (event.key === 'Enter') addRule(); });
+  $('fw-comment').addEventListener('keydown', event => { if (event.key === 'Enter') addRule(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh(true);
+    else text('connection', t('paused'));
+  });
+
+  text('access-hint', `${t('access')} · http://${location.host}/`);
+  scheduleRefresh();
+  refresh(true);
+})();
+</script>
+</body>
+</html>

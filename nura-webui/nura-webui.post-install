@@ -1,0 +1,17 @@
+#!/bin/sh
+# 开端口并加载面板。开机时的端口规则由 60_nura-webui.nft 负责，这里只管
+# 系统已经在运行的情况。按 comment 判断，重复执行不会加第二条。
+set -eu
+
+MARKER='nura webui management panel'
+
+if nft list table inet filter >/dev/null 2>&1; then
+	nft list chain inet filter input 2>/dev/null | grep -q "$MARKER" \
+		|| nft insert rule inet filter input tcp dport 16888 accept comment "\"$MARKER\""
+fi
+
+systemctl daemon-reload || true
+# 不能用 enable --now：服务已在跑时它什么也不做，而 server.py 只在启动时读
+# 一次，旧进程会一直留着。所以无条件 restart。
+systemctl enable nura-webui.service || true
+systemctl restart nura-webui.service || true

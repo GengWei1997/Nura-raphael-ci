@@ -1,0 +1,4 @@
+# Presets are applied in filename order and the first match wins, so this has
+# to sort before 99-default.preset, whose "disable *" would otherwise disable
+# the unit. 90-base.preset sorts earlier but does not mention it.
+enable nura-webui.service

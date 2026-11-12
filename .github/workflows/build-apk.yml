@@ -1,0 +1,171 @@
+name: Build nura-webui apk
+
+# abuild 没有跳过签名的开关，所以每次构建生成一次性密钥，构建完随容器销毁。
+
+on:
+  workflow_dispatch:
+    inputs:
+      pkgrel:
+        description: "覆盖 APKBUILD 的 pkgrel；留空用文件里的值"
+        required: false
+        default: ""
+        type: string
+      publish_release:
+        description: "发布成 GitHub Release"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PKGNAME: nura-webui
+  SRC_DIR: nura-webui
+
+jobs:
+  build:
+    name: Build apk
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: ver
+        env:
+          OVERRIDE_REL: ${{ inputs.pkgrel }}
+        run: |
+          set -euo pipefail
+          pkg="$SRC_DIR/APKBUILD"
+          ver="$(sed -n 's/^pkgver=//p' "$pkg")"
+          rel="$(sed -n 's/^pkgrel=//p' "$pkg")"
+
+          if [ -n "${OVERRIDE_REL:-}" ]; then
+            case "$OVERRIDE_REL" in
+              *[!0-9]*) echo "::error::pkgrel 必须是整数"; exit 1 ;;
+            esac
+            rel="$OVERRIDE_REL"
+            sed -i "s/^pkgrel=.*/pkgrel=$rel/" "$pkg"
+          fi
+
+          {
+            echo "version=$ver"
+            echo "rel=$rel"
+            echo "apk=$PKGNAME-$ver-r$rel.apk"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify sha512sums
+        run: |
+          set -euo pipefail
+          cd "$SRC_DIR"
+          sha512sum -c <(sed -n '/^sha512sums="/,/^"$/p' APKBUILD \
+            | sed '1d;$d' | sed 's/^\t//')
+
+      - name: Build in Alpine
+        env:
+          APK_NAME: ${{ steps.ver.outputs.apk }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci/out
+
+          docker run --rm \
+            --volume "$PWD:/work" \
+            alpine:3.22 \
+            /bin/sh -euc '
+              apk add --no-cache abuild
+
+              # 一次性密钥。公钥必须进本地库，否则建索引时报 UNTRUSTED。
+              PACKAGER="Nura CI <ci@localhost>" abuild-keygen -a -n
+              cp /root/.abuild/*.rsa.pub /etc/apk/keys/
+
+              # abuild 用上级目录名当仓库名
+              mkdir -p /pkg
+              cp -a /work/'"$SRC_DIR"' /pkg/'"$PKGNAME"'
+              cd /pkg/'"$PKGNAME"'
+
+              # -F 允许 root，-d 跳过依赖，-P 把产物指回挂载目录
+              abuild -F -d -r -P /work/.ci/out
+
+              out="$(find /work/.ci/out -name '"$APK_NAME"' -print -quit)"
+              test -n "$out"
+              apk verify "$out"
+            '
+
+      - name: Check package
+        env:
+          APK_NAME: ${{ steps.ver.outputs.apk }}
+        run: |
+          set -euo pipefail
+          built="$(find .ci/out -name "$APK_NAME" -print -quit)"
+          if [ -z "$built" ]; then
+            echo "::error::构建没有产出 $APK_NAME"
+            find .ci/out -type f | head -20
+            exit 1
+          fi
+
+          tar xzOf "$built" .PKGINFO | grep -E '^(pkgname|pkgver|arch|size) ='
+
+          # apk 每次事务只跑 post-install 或 post-upgrade 其中一个，缺哪个都
+          # 会让对应场景跳过重启。先取列表，避免 tar 的 stderr 触发 pipefail。
+          entries="$(tar tzf "$built" 2>/dev/null || true)"
+          for script in .post-install .post-upgrade; do
+            printf '%s\n' "$entries" | grep -qx -- "$script" || {
+              echo "::error::包里缺 $script，对应场景不会重启服务"
+              exit 1
+            }
+          done
+
+          signame="$(tar tzf "$built" 2>/dev/null | grep -m1 '^\.SIGN\.RSA\.' || true)"
+          echo "临时签名: ${signame:-（无）}"
+
+          echo "built=$built" >> "$GITHUB_ENV"
+
+      - name: Collect artifact
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          cp "$built" artifacts/
+          ( cd artifacts && sha256sum ./*.apk > SHA256SUMS )
+          ls -lh artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nura-webui-apk
+          path: artifacts/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Publish release
+        if: success() && (inputs.publish_release == true || inputs.publish_release == 'true')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          REL: ${{ steps.ver.outputs.rel }}
+          APK_NAME: ${{ steps.ver.outputs.apk }}
+        run: |
+          set -euo pipefail
+          tag="$PKGNAME-$VERSION-r$REL"
+
+          notes="$PKGNAME $VERSION-r$REL
+
+          装的时候带 \`--allow-untrusted\`，装完自动重启：
+
+          \`\`\`bash
+          apk add --allow-untrusted --upgrade $APK_NAME
+          \`\`\`"
+
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$PKGNAME $VERSION-r$REL" \
+            --notes "$notes" \
+            artifacts/*
+
+      - name: Show build output on failure
+        if: failure()
+        run: find .ci/out -type f | head -20 || true

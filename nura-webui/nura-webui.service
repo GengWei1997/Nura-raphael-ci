@@ -1,0 +1,35 @@
+[Unit]
+Description=Nura web management panel for xiaomi-raphael
+After=network-online.target NetworkManager.service nftables.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# The panel kills processes it owns, so it must not run as root.
+# 10000 is the uid pmbootstrap gives the default user; the name may differ.
+User=10000
+# docker.sock is root:docker 0660.
+SupplementaryGroups=docker
+# Editing nftables needs CAP_NET_ADMIN without becoming root; ambient keeps it
+# across exec so `nft` inherits it.
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+# The bounding set also has to cover what sudo needs to become root for the two
+# systemctl calls granted in /etc/sudoers.d/nura-webui. Dangerous capabilities
+# (CAP_SYS_ADMIN, CAP_DAC_OVERRIDE, CAP_SYS_MODULE ...) stay out.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_SETUID CAP_SETGID CAP_SETPCAP CAP_AUDIT_WRITE
+# NoNewPrivileges must stay off: it makes setuid helpers such as sudo fail with
+# 'the "no new privileges" flag is set'. The sudoers file limits the damage to
+# exactly two fixed commands.
+NoNewPrivileges=no
+ExecStart=/usr/bin/python3 /usr/share/nura-webui/server.py --port 16888
+WorkingDirectory=/usr/share/nura-webui
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

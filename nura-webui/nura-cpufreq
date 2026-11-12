@@ -1,0 +1,72 @@
+#!/bin/sh
+# Set the CPU power profile for the panel.
+#
+#   nura-cpufreq mode performance|balanced|powersave
+#
+# Balanced and powersave both use schedutil, which scales with load; powersave
+# is the same governor with scaling_max_freq capped, because this kernel has no
+# `powersave` governor (only ondemand, userspace, performance and schedutil).
+#
+# Performance pins every cluster to its hardware maximum and never downclocks,
+# even at idle: measured 1785/2419/2841 MHz versus 1209/1612/1804 MHz for
+# balanced under no load. Under full load the two are identical.
+#
+# This script runs as root, so it validates everything itself: sudoers grants
+# it a wildcard argument, and sysfs is the last line of defence.
+set -eu
+
+CPUFREQ=/sys/devices/system/cpu/cpufreq
+# Fraction of cpuinfo_max_freq used by the powersave profile. 60 % puts the big
+# cluster around 1.7 GHz, which is where this SoC sits under light load anyway.
+SAVE_PERCENT=60
+
+die() {
+	echo "$*" >&2
+	exit 1
+}
+
+cmd="${1:-}"
+mode="${2:-}"
+
+[ "$cmd" = mode ] || die "usage: nura-cpufreq mode performance|balanced|powersave"
+
+case "$mode" in
+performance)
+	governor=performance
+	capped=no
+	;;
+balanced)
+	governor=schedutil
+	capped=no
+	;;
+powersave)
+	governor=schedutil
+	capped=yes
+	;;
+*)
+	die "usage: nura-cpufreq mode performance|balanced|powersave"
+	;;
+esac
+
+for policy in "$CPUFREQ"/policy*; do
+	[ -d "$policy" ] || continue
+	hardware=$(cat "$policy/cpuinfo_max_freq")
+	if [ "$capped" = yes ]; then
+		target=$((hardware / 100 * SAVE_PERCENT))
+		# Snap down to a step the cluster actually offers, otherwise the kernel
+		# silently picks something else and the cap looks ignored.
+		best=0
+		for step in $(cat "$policy/scaling_available_frequencies"); do
+			[ "$step" -le "$target" ] && best=$step
+		done
+		[ "$best" -gt 0 ] || best=$hardware
+		echo "$best" >"$policy/scaling_max_freq" || die "write failed"
+	else
+		echo "$hardware" >"$policy/scaling_max_freq" || die "write failed"
+	fi
+	# Raise the floor back up too, in case a previous profile pinned it low.
+	echo "$(cat "$policy/cpuinfo_min_freq")" >"$policy/scaling_min_freq" || die "write failed"
+	echo "$governor" >"$policy/scaling_governor" || die "write failed"
+done
+
+echo "$mode"

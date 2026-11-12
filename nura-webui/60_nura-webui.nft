@@ -1,0 +1,6 @@
+#!/usr/sbin/nft -f
+table inet filter {
+	chain input {
+		tcp dport 16888 accept comment "nura webui management panel"
+	}
+}

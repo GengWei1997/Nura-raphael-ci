@@ -1,0 +1,62 @@
+# Reference: <https://postmarketos.org/APKBUILD>
+maintainer="GengWei1997 <gw19970326@gmail.com>"
+pkgname=nura-webui
+pkgver=1.0
+pkgrel=0
+pkgdesc="Web management panel for the Xiaomi Redmi K20 Pro (xiaomi-raphael)"
+url="https://github.com/GengWei1997/Nura-xiaomi-raphael"
+arch="noarch"
+license="MIT"
+depends="python3 nftables"
+source="
+	server.py
+	index.html
+	nura-webui.service
+	90-nura-webui.preset
+	60_nura-webui.nft
+	nura-webui.sudoers
+	blank_screen.service
+	nura-cpufreq
+	nura-webui.post-install
+	nura-webui.post-upgrade
+"
+# apk 每次事务只跑 post-install 或 post-upgrade 其中一个，两个都要打进去。
+install="$pkgname.post-install $pkgname.post-upgrade"
+options="!check !fhs"
+
+package() {
+	install -Dm755 "$srcdir"/server.py "$pkgdir"/usr/share/nura-webui/server.py
+	install -Dm644 "$srcdir"/index.html "$pkgdir"/usr/share/nura-webui/index.html
+
+	install -Dm644 "$srcdir"/nura-webui.service \
+		"$pkgdir"/usr/lib/systemd/system/nura-webui.service
+	# 99-default.preset ships "disable *", so the unit needs its own preset.
+	install -Dm644 "$srcdir"/90-nura-webui.preset \
+		"$pkgdir"/usr/lib/systemd/system-preset/90-nura-webui.preset
+	install -Dm644 "$srcdir"/60_nura-webui.nft \
+		"$pkgdir"/etc/nftables.d/60_nura-webui.nft
+	# Shipped in /usr/lib so a unit the device already has in /etc/systemd/system
+	# keeps winning; new devices get it from here and the toggle works out of
+	# the box. Enabling it is still the panel's job, not the package's.
+	install -Dm644 "$srcdir"/blank_screen.service \
+		"$pkgdir"/usr/lib/systemd/system/blank_screen.service
+	# Grants exactly the commands the panel needs, nothing else.
+	install -Dm440 "$srcdir"/nura-webui.sudoers \
+		"$pkgdir"/etc/sudoers.d/nura-webui
+	# Validates the frequency itself before touching sysfs.
+	install -Dm755 "$srcdir"/nura-cpufreq \
+		"$pkgdir"/usr/libexec/nura-cpufreq
+}
+
+sha512sums="
+a6ba1d4d4d59edfbc99f8dc1f012e3490ef47fc98b3bc5e17e42932249e4d1499b05a43aef50bcf552ceec11c9900294532a531cf52cf96450d0a27342575cad  server.py
+95ea896d9af5866a67dd02221217d4c162bfe5c7f4c702462ef26ea0cf4a184f1266f363d4e238d9e7e06f727843bd3de9761d58225ff98def5a5a093f49a227  index.html
+94ca5247afc92b15440884562ec3be329a4cf9f660a06b8b8393aa8dcce101192a254e7ce89aa021d66c1e3fdf51d925a7af4262b734d9240077bc630996468f  nura-webui.service
+c999026b663c8914c32e46b862b346d6c7a9acdc0c2fd76da0c6cc80dc9428f473cdcf95145a633175779d672f78d523c1940a3bf4e0555b466548cb5cce4733  90-nura-webui.preset
+28687e91ba601815cc3f1aef60318c944e06f304c1e76ff9050389efe97d7ed4c8d87967501d695f1b0e2f9060b95817b68a21e1f0c8a59ec712e9ae8c2c5e8d  60_nura-webui.nft
+3ef72b69c7bc38aad5604363f1423203a55cbdb7957a6c4acc8a2f9d8b1670b2e48857e32d7c75c82fee75770225a046ca303ab95e91b673bcf48ddf08658d4b  nura-webui.sudoers
+27565982cfcd9b38cecf07d430f1e4ea83934ca93aa4d606014f340f0bbb93bb1bf5d570bdf427e0f1560256694fa0d35c8dafbedf525b1656e6cbae80f2c592  blank_screen.service
+f41c84bcd2f4509e66d45138a932022315721d31950bb22b5700ab1115a680c12c440ed462f123f8fa87b42415e6a298612668a09453577aaba39d56053e191c  nura-cpufreq
+23a2001647e7dea585c1dc07e7eed0e85165ed251fde2a56554f02f90babf3867024a89093313bdee431878d530f6a6e58687f176d591824b60867fb9d8ac75a  nura-webui.post-install
+dd5a48a668392f007dd18ba01b9730679e575df9d38fdd6bfd1eb8af5212129e3dd5bd1c63f61c72fcf6797c695e6e38ff276bf52d102a1b84c412c7ca2685c0  nura-webui.post-upgrade
+"
