@@ -7,17 +7,31 @@
 
 | 分类 | 内容 |
 |---|---|
-| 概览 | 电池、供电详情、内存、存储、运行时间、CPU 三簇与运行模式、GPU |
+| 概览 | 系统信息（发行版、架构、内核、主页）、电池、供电详情、内存、存储、运行时间、CPU 三簇与运行模式、GPU |
 | 温度 | 28 个热区，各自的降频阈值 |
 | 网络 | Wi-Fi、USB 网络、全部接口地址 |
 | 服务 | systemd 单元，失败的高亮 |
 | 容器 | Docker 容器，可启动、暂停、停止 |
-| 防火墙 | nftables 入站规则，可添加、编辑、删除 |
+| 防火墙 | nftables 入站/出站规则，可添加、编辑、删除 |
 | 进程 | 按 CPU 或内存排序，可结束自己的进程 |
-| 设置 | 设备功能开关，目前是自动熄屏 |
+| 设置 | 设备功能开关（目前是自动熄屏）与面板版本、设备、主机名 |
 
 界面默认简体中文，右上角可切英文。语言、刷新间隔和当前分类存在浏览器里，
 也认 URL 里的 `#containers` 这类锚点。
+
+## 概览里的系统信息
+
+概览最上面一条是发行版信息，全部来自 `/etc/os-release` 和 `uname`：
+`NAME` 作标题、`VERSION` 作副标题、`ID_LIKE` 作右上角的 family 标记，
+右边是架构和内核。改 `/etc/os-release` 里的名字，面板不用动就会跟着变。
+
+左上角的标志取自官网 `https://nura.eco/static/img/2026-09/logo-new.svg`，
+只保留三角形部分（去掉 "Nura" 字样），内联进 HTML，`nura-logo.svg` 是
+源文件留档、只参与校验和，不装进包里。
+
+面板自己的版本号显示在设置页底部，从 `/lib/apk/db/installed` 里读
+`nura-webui` 的 `V:` 字段，所以它永远等于实际装上的那个包，不需要在代码里
+再维护一份。开发时直接 scp 上去的文件没有包记录，那里就显示 `—`。
 
 ## 安装
 
@@ -41,13 +55,6 @@ Wi-Fi 卡片显示名称、信号、频段、信道、地址和 MAC，不显示�
 - `wpa_cli` 没有控制 socket，NetworkManager 用 D-Bus 直连
 
 待机时实际吞吐只有 `0.01 Mbit/s` 左右，标一个「270 Mbit/s」会误导。频段和信道是当前关联的确定事实，所以用它们替代。
-
-```sh
-scp nura-webui-*.apk user@<设备地址>:/tmp/
-ssh user@<设备地址> 'sudo apk add --allow-untrusted /tmp/nura-webui-*.apk'
-```
-
-装完服务就起来了，`nftables` 的放行规则也一起生效。
 
 ## 运行模式
 
@@ -83,9 +90,15 @@ sysfs 都是 `root:root 0644`，面板以 uid 10000 运行写不了，所以走
 
 规则按注释去重，重复安装不会堆叠。
 
-防火墙页可以直接改 `inet filter input` 链：添加、编辑、删除都走 `nft`。
+防火墙页可以改 `inet filter` 的 `input` 和 `output` 两条链：添加、编辑、删除
+都走 `nft`。入站规则匹配来源（`ip saddr`），出站规则匹配目的（`ip daddr`），
+同一个“地址”输入框按所选的链自动切换。
+
 编辑用 `replace rule ... handle N`，handle 不变，规则位置也不变，
 所以不会把新规则挪到链尾。
+
+链名只接受 `input` 和 `output` 两个值，其它一律拒绝——`forward` 和 Docker 自己
+建的链面板不能碰，误删会让容器网络断掉。
 
 服务带 `AmbientCapabilities=CAP_NET_ADMIN`，靠能力位操作 nft，不以 root 运行。
 

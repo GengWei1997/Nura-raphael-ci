@@ -34,8 +34,9 @@ body{
 }
 .brand{display:flex;align-items:center;gap:10px;padding:0 4px}
 .mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;
-  background:linear-gradient(150deg,#16405f,#162b38);border:1px solid #2a5570;color:var(--cyan)}
-.mark svg{width:19px;height:19px}
+  background:radial-gradient(120% 120% at 30% 20%,#1b3d2f,#101c18 70%);border:1px solid #2b5a45;
+  color:#3ddc84;box-shadow:0 0 0 1px #0b1411 inset}
+.mark svg{width:18px;height:18px;display:block}
 .brandname{font-size:12.5px;font-weight:650;letter-spacing:-.01em;line-height:1.2}
 .brandsub{font-size:10.5px;letter-spacing:.02em;color:var(--faint);margin-top:1px}
 
@@ -55,7 +56,6 @@ body{
 .navitem.active .navcount{background:#1d3040;color:var(--cyan)}
 .navcount:empty{display:none}
 
-.sidefoot{margin-top:auto;font-size:10.5px;color:var(--faint);padding:0 6px;line-height:1.5}
 
 /* ---------- content ---------- */
 .content{flex:1;min-width:0;padding:14px 16px 24px}
@@ -97,6 +97,34 @@ body{
 .kv.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .kv .k{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
 .kv .v{font-size:12.5px;margin-top:1px;overflow-wrap:anywhere}
+
+.distro-card{background:linear-gradient(150deg,#17241fee,#0f161eee);border-color:#273c33;
+  box-shadow:0 6px 18px #0003,0 0 0 1px #12241c inset}
+.distro{display:flex;align-items:center;gap:14px}
+.distro-logo{
+  width:46px;height:46px;flex:none;border-radius:13px;display:grid;place-items:center;
+  color:#3ddc84;border:1px solid #2b5a45;
+  background:radial-gradient(120% 120% at 30% 20%,#1b3d2f,#0f1b17 72%);
+  box-shadow:0 0 0 1px #0b1411 inset,0 5px 16px #002e1b66;
+}
+.distro-logo svg{width:26px;height:26px;display:block}
+.distro-body{min-width:0;flex:1}
+.distro-name{font-size:19px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.distro-ver{font-size:11.5px;color:#7fd9a4;margin-top:3px;letter-spacing:.03em}
+.distro-facts{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  margin-left:14px;padding-left:22px;border-left:1px solid #223428}
+.distro-facts>div{padding-left:22px;border-left:1px solid #1b2a21}
+.distro-facts>div:first-child{padding-left:0;border-left:0}
+.distro-facts .dk{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.distro-facts .dv{font-size:12.5px;margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:620px){
+  .distro{flex-wrap:wrap;gap:12px}
+  .distro-body{flex:1 1 auto}
+  .distro-facts{flex:1 1 100%;margin:2px 0 0;padding:12px 0 0;border-left:0;
+    border-top:1px solid #223428;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .distro-facts>div{padding-left:14px}
+  .distro-facts>div:first-child{padding-left:0}
+}
 
 .cores{display:flex;gap:3px;align-items:flex-end;height:34px;margin-top:9px}
 .core{flex:1;height:100%;background:#22303f;border-radius:2px;position:relative;overflow:hidden}
@@ -174,6 +202,9 @@ body{
 
 /* settings toggles */
 .toggles{display:flex;flex-direction:column;gap:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:14px;padding-top:12px;
+  border-top:1px solid #1e2833;font-size:11.5px;color:var(--muted)}
+.meta b{color:var(--text);font-weight:600;margin-left:6px;font-variant-numeric:tabular-nums}
 .toggle{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
   border:1px solid #212d3a;background:#0e151d;border-radius:8px;padding:10px 12px}
 .toggle.on{border-color:#26414f;background:#101c23}
@@ -193,6 +224,9 @@ body{
 .ptools input{flex:1;min-width:150px}
 
 .fwform{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.fwchain{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  font-weight:650;margin:10px 0 4px;padding-top:8px;border-top:1px solid #1e2833}
+.fwchain:first-child{margin-top:0;padding-top:0;border-top:0}
 .fwform input,.fwform select{font-size:12px}
 .fwform #fw-port{width:96px;flex:none}
 .fwform #fw-source{width:170px;flex:none}
@@ -227,7 +261,6 @@ body{
   .navitem{padding:6px 10px;white-space:nowrap}
   .navitem span.nl{display:none}
   .navcount{margin-left:4px}
-  .sidefoot{display:none}
   .content{padding:12px}
 }
 @media(max-width:620px){
@@ -247,9 +280,12 @@ body{
   <aside class="side">
     <div class="brand">
       <div class="mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-          <rect x="7" y="2" width="10" height="20" rx="2.5"/>
-          <path d="M10.5 5.5h3"/>
+        <svg viewBox="-2.5 -2.5 105 105" role="img" aria-label="Nura">
+          <g fill="currentColor">
+            <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496"/>
+            <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496" transform="rotate(-120 50 64.362457)"/>
+            <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496" transform="rotate(120 50 64.362457)"/>
+          </g>
         </svg>
       </div>
       <div>
@@ -320,10 +356,6 @@ body{
       </button>
     </nav>
 
-    <div class="sidefoot">
-      <div id="side-host">—</div>
-      <div id="side-access">—</div>
-    </div>
   </aside>
 
   <main class="content">
@@ -347,6 +379,29 @@ body{
     <!-- 概览 -->
     <section class="page" id="page-overview">
       <div class="grid">
+        <article class="card span4 distro-card">
+          <div class="cardhead"><h3 data-i18n="distro">系统</h3><span class="chip" id="distro-chip">—</span></div>
+          <div class="distro">
+            <div class="distro-logo" aria-hidden="true">
+              <svg viewBox="-2.5 -2.5 105 105">
+                <g fill="currentColor">
+                  <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496"/>
+                  <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496" transform="rotate(-120 50 64.362457)"/>
+                  <path d="m 36.635496,76.175087 7.095552,8.456149 -7.095552,8.45615 H 99.753054 L 85.106573,67.718937 74.235557,65.802085 70.460093,76.175087 H 36.635496" transform="rotate(120 50 64.362457)"/>
+                </g>
+              </svg>
+            </div>
+            <div class="distro-body">
+              <div class="distro-name" id="distro-name">—</div>
+              <div class="distro-ver" id="distro-version">—</div>
+            </div>
+            <div class="distro-facts">
+              <div><div class="dk" data-i18n="arch">架构</div><div class="dv" id="distro-arch">—</div></div>
+              <div><div class="dk" data-i18n="kernel">内核</div><div class="dv" id="distro-kernel">—</div></div>
+            </div>
+          </div>
+        </article>
+
         <article class="card">
           <div class="cardhead"><h3 data-i18n="battery">电池</h3><span class="chip" id="battery-chip">—</span></div>
           <div class="vrow"><span class="value" id="battery">—</span><span class="unit">%</span></div>
@@ -450,6 +505,10 @@ body{
         <article class="card span4">
           <div class="cardhead"><h3 data-i18n="fwRules">入站规则</h3><span class="chip" id="fw-chip">—</span></div>
           <div class="fwform">
+            <select class="action" id="fw-chain" aria-label="Chain">
+              <option value="input" data-i18n="fwChainIn">入站</option>
+              <option value="output" data-i18n="fwChainOut">出站</option>
+            </select>
             <select class="action" id="fw-proto" aria-label="Protocol">
               <option value="tcp">TCP</option>
               <option value="udp">UDP</option>
@@ -529,6 +588,14 @@ body{
           </div>
           <div class="toggles" id="settings-toggles"><div class="empty">—</div></div>
           <div class="sub" id="settings-message" style="margin-top:8px"></div>
+          <div class="meta">
+            <span><span data-i18n="panelVersion">面板版本</span>
+              <b id="panel-version">—</b></span>
+            <span><span data-i18n="deviceName">设备</span>
+              <b id="panel-device">—</b></span>
+            <span><span data-i18n="hostName">主机名</span>
+              <b id="panel-host">—</b></span>
+          </div>
         </article>
       </div>
     </section>
@@ -551,12 +618,13 @@ const I18N = {
     navOverview: '概览', navThermals: '温度', navNetwork: '网络', navFirewall: '防火墙',
     navServices: '服务', navContainers: '容器', navProcesses: '进程', navSettings: '设置',
     descOverview: '电池、供电、内存、存储、处理器与图形', descThermals: '全部热区与各自的降频阈值',
-    descNetwork: 'Wi-Fi、USB 网络与接口地址', descFirewall: 'nftables 入站规则，可放行或删除',
+    distro: '系统', base: '基础', kernel: '内核', arch: '架构',    descNetwork: 'Wi-Fi、USB 网络与接口地址', descFirewall: 'nftables 入站与出站规则，可放行或删除',
     descServices: 'systemd 单元状态', descContainers: 'Docker 容器与启停',
     descProcesses: '按 CPU 或内存排序，可结束自己的进程',
     descSettings: '设备功能开关',
-    fwRules: '入站规则', fwPort: '端口', fwSource: '来源 CIDR，留空表示任意',
+    fwRules: '防火墙规则', fwPort: '端口', fwSource: '来源 CIDR，留空表示任意',
     fwComment: '备注', fwAdd: '添加', fwPolicy: '默认策略',
+    fwChainIn: '入站', fwChainOut: '出站',
     fwPortOk: (p, proto) => `已放行 ${proto}/${p}`,
     fwConfirmDel: r => `删除规则 #${r.handle}（${r.summary}）？`,
     fwNoPort: '请填写 1-65535 的端口',
@@ -565,7 +633,7 @@ const I18N = {
     governor: '调度器', maxfreq: '最高频率',
     cpuMode: '运行模式', modePerformance: '性能', modeBalanced: '均衡', modePowersave: '省电',
     modeApplying: '正在切换模式…',
-    ssid: '名称', signal: '信号', rate: '速率', address: '地址', mac: 'MAC', usbnet: 'USB 网络',
+    wifi: 'Wi-Fi', ssid: '名称', signal: '信号', rate: '速率', address: '地址', mac: 'MAC', usbnet: 'USB 网络',
     band: '频段', channel: '信道',
     temp: '温度', voltage: '电压', current: '电流', source: '供电', health: '健康度', technology: '电芯',
     colname: '进程', colcpu: 'CPU', colram: '内存', colaction: '操作',
@@ -590,6 +658,7 @@ const I18N = {
     poll: n => `每 ${n} 秒自动刷新`,
     access: '面板端口 16888',
     settingsHint: '开关直接改设备上的 systemd 单元，改动保留到下次开机。',
+    panelVersion: '面板版本', deviceName: '设备', hostName: '主机名',
     blankName: '自动熄屏',
     blankDesc: '开机 15 秒后关闭屏幕，减少 OLED 烧屏和待机耗电。开启后从下次开机生效；关闭会立刻停止并取消自启。',
     blankOn: '已开启', blankOff: '已关闭',
@@ -605,12 +674,13 @@ const I18N = {
     navOverview: 'Overview', navThermals: 'Thermals', navNetwork: 'Network', navFirewall: 'Firewall',
     navServices: 'Services', navContainers: 'Containers', navProcesses: 'Processes', navSettings: 'Settings',
     descOverview: 'Battery, power, memory, storage, CPU and graphics', descThermals: 'Every thermal zone and its throttle trip',
-    descNetwork: 'Wi-Fi, USB networking and interface addresses', descFirewall: 'nftables input rules; open ports or delete rules',
+    distro: 'System', base: 'Base', kernel: 'Kernel', arch: 'Arch',    descNetwork: 'Wi-Fi, USB networking and interface addresses', descFirewall: 'nftables input and output rules; open ports or delete rules',
     descServices: 'systemd unit state', descContainers: 'Docker containers, start and stop',
     descProcesses: 'Sorted by CPU or RAM; kill your own processes',
     descSettings: 'Device feature switches',
-    fwRules: 'Input rules', fwPort: 'Port', fwSource: 'Source CIDR, blank for any',
+    fwRules: 'Firewall rules', fwPort: 'Port', fwSource: 'Source CIDR, blank for any',
     fwComment: 'Comment', fwAdd: 'Add', fwPolicy: 'Default policy',
+    fwChainIn: 'Inbound', fwChainOut: 'Outbound',
     fwPortOk: (p, proto) => `Opened ${proto}/${p}`,
     fwConfirmDel: r => `Delete rule #${r.handle} (${r.summary})?`,
     fwNoPort: 'Enter a port between 1 and 65535',
@@ -619,7 +689,7 @@ const I18N = {
     governor: 'Governor', maxfreq: 'Max clock',
     cpuMode: 'Power mode', modePerformance: 'Performance', modeBalanced: 'Balanced', modePowersave: 'Saver',
     modeApplying: 'Switching mode…',
-    ssid: 'SSID', signal: 'Signal', rate: 'Rate', address: 'Address', mac: 'MAC', usbnet: 'USB network',
+    wifi: 'Wi-Fi', ssid: 'SSID', signal: 'Signal', rate: 'Rate', address: 'Address', mac: 'MAC', usbnet: 'USB network',
     band: 'Band', channel: 'Channel',
     temp: 'Temperature', voltage: 'Voltage', current: 'Current', source: 'Source', health: 'Health', technology: 'Chemistry',
     colname: 'Process', colcpu: 'CPU', colram: 'RAM', colaction: 'Action',
@@ -644,6 +714,7 @@ const I18N = {
     poll: n => `Refreshes every ${n} seconds`,
     access: 'Panel port 16888',
     settingsHint: 'Switches act on real systemd units and survive a reboot.',
+    panelVersion: 'Panel version', deviceName: 'Device', hostName: 'Hostname',
     blankName: 'Auto blank screen',
     blankDesc: 'Blanks the display 15 s after boot to limit OLED burn-in and standby drain. '
       + 'Turning it on takes effect at the next boot; turning it off also cancels a pending blank.',
@@ -654,7 +725,7 @@ const I18N = {
 };
 
 const $ = id => document.getElementById(id);
-const state = { lang: 'zh', page: 'overview', latest: null, termed: {}, dockerBusy: false, firewallEditing: null, toggleBusy: false, modeBusy: false };
+const state = { lang: 'zh', page: 'overview', latest: null, termed: {}, dockerBusy: false, firewallEditing: null, toggleBusy: false, modeBusy: false, fwChain: 'input' };
 const PAGES = ['overview', 'thermals', 'network', 'firewall', 'services', 'containers', 'processes', 'settings'];
 const PAGE_TITLE_KEY = {
   overview: 'navOverview', thermals: 'navThermals', network: 'navNetwork', firewall: 'navFirewall',
@@ -1031,6 +1102,10 @@ async function dockerAction(container, action) {
 function renderSettings(settings) {
   const box = $('settings-toggles');
   const blank = settings['blank-screen'] || {};
+  const device = state.latest?.device || {};
+  text('panel-version', settings['panel-version'] || '—');
+  text('panel-device', device.name || '—');
+  text('panel-host', device.hostname || '—');
   const available = blank.available === true;
   text('settings-chip', available
     ? (blank.enabled ? t('blankOn') : t('blankOff'))
@@ -1163,9 +1238,11 @@ function renderFirewall(data) {
   const box = $('fw-rules');
   box.replaceChildren();
   const rules = data.rules || [];
+  const policies = data.policies || {};
   text('nav-firewall-count', rules.length || '');
-  const policy = data.policy || '—';
-  text('fw-chip', `${t('fwPolicy')} ${policy} · ${rules.length}`);
+  const policy = policies[state.fwChain] ?? data.policy ?? '—';
+  const chainCount = rules.filter(r => r.chain === state.fwChain).length;
+  text('fw-chip', `${t('fwPolicy')} ${policy} · ${chainCount}`);
   $('fw-chip').className = 'chip' + (policy === 'drop' ? ' warn' : '');
 
   if (!data.available) {
@@ -1177,58 +1254,74 @@ function renderFirewall(data) {
     box.append(e);
     return;
   }
-  if (!rules.length) {
-    const e = document.createElement('div');
-    e.className = 'empty';
-    e.textContent = t('fwEmpty');
-    box.append(e);
-    return;
-  }
-  for (const rule of rules) {
-    const row = document.createElement('div');
-    row.className = 'fwrow' + (rule.managed ? ' managed' : '');
 
-    const port = document.createElement('span');
-    port.className = 'fwport';
-    const match = /port (\d+)/.exec(rule.summary);
-    port.textContent = match ? match[1] : '—';
+  // Both chains are listed together so a port can be compared in and out
+  // without switching tabs; the form below acts on the selected one.
+  for (const name of ['input', 'output']) {
+    const group = rules.filter(r => r.chain === name);
+    if (!group.length && name !== state.fwChain) continue;
 
-    const desc = document.createElement('div');
-    desc.className = 'fwdesc';
-    const summary = document.createElement('div');
-    summary.className = 'fwsum';
-    summary.textContent = rule.summary;
-    const comment = document.createElement('div');
-    comment.className = 'fwcom';
-    comment.textContent = rule.comment || `#${rule.handle}`;
-    if (rule.managed) {
-      const tag = document.createElement('span');
-      tag.className = 'fwtag';
-      tag.textContent = state.lang === 'zh' ? '面板' : 'panel';
-      comment.append(tag);
+    const head = document.createElement('div');
+    head.className = 'fwchain';
+    head.textContent = `${name === 'input' ? t('fwChainIn') : t('fwChainOut')}`
+      + ` · ${t('fwPolicy')} ${policies[name] ?? '—'}`;
+    box.append(head);
+
+    if (!group.length) {
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = t('fwEmpty');
+      box.append(e);
+      continue;
     }
-    desc.append(summary, comment);
-
-    const del = document.createElement('button');
-    del.className = 'act-btn danger';
-    del.textContent = t('fwDelete');
-    del.title = `handle ${rule.handle}`;
-    del.addEventListener('click', () => deleteRule(rule));
-
-    const buttons = document.createElement('div');
-    buttons.className = 'fwbtns';
-    const edit = document.createElement('button');
-    edit.className = 'act-btn';
-    edit.textContent = t('fwEdit');
-    edit.title = `handle ${rule.handle}`;
-    edit.disabled = rule.protocol == null || rule.port == null;
-    edit.addEventListener('click', () => startEdit(rule));
-    buttons.append(edit, del);
-
-    if (state.firewallEditing?.handle === rule.handle) row.classList.add('editing');
-    row.append(port, desc, buttons);
-    box.append(row);
+    for (const rule of group) box.append(firewallRow(rule));
   }
+}
+
+function firewallRow(rule) {
+  const row = document.createElement('div');
+  row.className = 'fwrow' + (rule.managed ? ' managed' : '');
+
+  const port = document.createElement('span');
+  port.className = 'fwport';
+  const match = /port (\d+)/.exec(rule.summary);
+  port.textContent = match ? match[1] : '—';
+
+  const desc = document.createElement('div');
+  desc.className = 'fwdesc';
+  const summary = document.createElement('div');
+  summary.className = 'fwsum';
+  summary.textContent = rule.summary;
+  const comment = document.createElement('div');
+  comment.className = 'fwcom';
+  comment.textContent = rule.comment || `#${rule.handle}`;
+  if (rule.managed) {
+    const tag = document.createElement('span');
+    tag.className = 'fwtag';
+    tag.textContent = state.lang === 'zh' ? '面板' : 'panel';
+    comment.append(tag);
+  }
+  desc.append(summary, comment);
+
+  const del = document.createElement('button');
+  del.className = 'act-btn danger';
+  del.textContent = t('fwDelete');
+  del.title = `handle ${rule.handle}`;
+  del.addEventListener('click', () => deleteRule(rule));
+
+  const buttons = document.createElement('div');
+  buttons.className = 'fwbtns';
+  const edit = document.createElement('button');
+  edit.className = 'act-btn';
+  edit.textContent = t('fwEdit');
+  edit.title = `handle ${rule.handle}`;
+  edit.disabled = rule.protocol == null || rule.port == null;
+  edit.addEventListener('click', () => startEdit(rule));
+  buttons.append(edit, del);
+
+  if (state.firewallEditing?.handle === rule.handle) row.classList.add('editing');
+  row.append(port, desc, buttons);
+  return row;
 }
 
 async function addRule() {
@@ -1242,11 +1335,12 @@ async function addRule() {
     protocol: $('fw-proto').value,
     source: $('fw-source').value.trim(),
     comment: $('fw-comment').value.trim(),
+    chain: $('fw-chain').value,
   };
   const editing = state.firewallEditing;
   const result = editing
     ? await post('/api/firewall/update', {
-        handle: editing.handle, managed: editing.managed, ...body,
+        handle: editing.handle, managed: editing.managed, chain: editing.chain, ...body,
       })
     : await post('/api/firewall/add', body);
   text('fw-message', result.message);
@@ -1261,11 +1355,15 @@ function clearForm() {
   $('fw-source').value = '';
   $('fw-add').textContent = t('fwAdd');
   $('fw-cancel').hidden = true;
+  // Keep the selected chain: adding several rules to the same direction in a
+  // row is the common case.
   document.querySelectorAll('.fwrow.editing').forEach(row => row.classList.remove('editing'));
 }
 
 function startEdit(rule) {
-  state.firewallEditing = { handle: rule.handle, managed: rule.managed };
+  state.firewallEditing = { handle: rule.handle, managed: rule.managed, chain: rule.chain || 'input' };
+  state.fwChain = rule.chain || 'input';
+  $('fw-chain').value = rule.chain || 'input';
   $('fw-proto').value = rule.protocol || 'tcp';
   $('fw-port').value = rule.port ?? '';
   $('fw-source').value = rule.source || '';
@@ -1281,10 +1379,23 @@ function startEdit(rule) {
 
 async function deleteRule(rule) {
   if (!confirm(t('fwConfirmDel')(rule))) return;
-  const result = await post('/api/firewall/delete', { handle: rule.handle });
+  const result = await post('/api/firewall/delete', { handle: rule.handle, chain: rule.chain || 'input' });
   text('fw-message', result.message);
   if (state.firewallEditing?.handle === rule.handle) clearForm();
   refresh(true);
+}
+
+function renderDistro(device) {
+  const distro = device.distro || {};
+  // The chip carries the base family, which says more at a glance than
+  // repeating the release string the version line already shows.
+  const base = (distro.id_like || distro.id || '').split(/[\s,]+/)[0];
+  text('distro-chip', base ? base[0].toUpperCase() + base.slice(1)
+    : (distro.version_id || distro.version || '—'));
+  text('distro-name', distro.name || distro.pretty_name || '—');
+  text('distro-version', distro.version || distro.version_id || distro.pretty_name || '—');
+  text('distro-arch', distro.arch || '—');
+  text('distro-kernel', device.kernel || '—');
 }
 
 function render(data) {
@@ -1295,7 +1406,7 @@ function render(data) {
   text('uptime', fmt.uptime(data.uptime_seconds));
   text('device-sub', [device.soc, device.hostname, device.login_user && `@${device.login_user}`]
     .filter(Boolean).join(' · '));
-  text('side-host', device.hostname || '—');
+  renderDistro(device);
 
   renderBattery(data.battery || {});
 
@@ -1411,6 +1522,11 @@ function scheduleRefresh() {
   $('process-filter').addEventListener('input', renderProcesses);
   $('fw-add').addEventListener('click', addRule);
   $('fw-cancel').addEventListener('click', () => { clearForm(); text('fw-message', ''); });
+  $('fw-chain').addEventListener('change', () => {
+    // Only the grouping header follows the selection; both chains stay visible.
+    state.fwChain = $('fw-chain').value;
+    renderFirewall(state.latest?.firewall || {});
+  });
   $('fw-port').addEventListener('keydown', event => { if (event.key === 'Enter') addRule(); });
   $('fw-comment').addEventListener('keydown', event => { if (event.key === 'Enter') addRule(); });
   document.addEventListener('visibilitychange', () => {

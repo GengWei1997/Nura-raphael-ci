@@ -11,6 +11,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import platform
 import pwd
 import re
 import shutil
@@ -27,6 +28,74 @@ BATTERY = "battery"
 GPU_DEVICE = "2c00000.gpu"
 SOC_MODEL = "Snapdragon 855"
 DEVICE_NAME = "Xiaomi Redmi K20 Pro"
+
+
+def distro_info() -> dict[str, Any]:
+    """Read /etc/os-release, which is the only distro identity that matters here.
+
+    Everything is optional: a stock Alpine install ships just ID/NAME, and the
+    panel should still render something sensible rather than guess.
+    """
+    fields: dict[str, str] = {}
+    try:
+        raw = Path("/etc/os-release").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        raw = ""
+    for line in raw.splitlines():
+        if "=" not in line or line.lstrip().startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        fields[key.strip()] = value.strip().strip('"').strip("'")
+    return {
+        "id": fields.get("ID"),
+        "id_like": fields.get("ID_LIKE"),
+        "arch": platform.machine(),
+        "name": fields.get("NAME"),
+        "pretty_name": fields.get("PRETTY_NAME"),
+        "version": fields.get("VERSION") or fields.get("VERSION_ID"),
+        "version_id": fields.get("VERSION_ID"),
+        "home_url": fields.get("HOME_URL"),
+        "logo": fields.get("LOGO"),
+    }
+
+APK_DB = Path("/lib/apk/db/installed")
+PANEL_PACKAGE = "nura-webui"
+_panel_version: tuple[float, str | None] | None = None
+
+
+def panel_version(db: Path = APK_DB) -> str | None:
+    """Read the panel's own version back out of the apk database.
+
+    The version is stamped into the package at build time, so the only place
+    that knows it at runtime is apk's own bookkeeping. Development copies are
+    not installed at all; a missing entry returns None and the panel shows a
+    dash rather than inventing a version.
+    """
+    global _panel_version
+    try:
+        mtime = db.stat().st_mtime
+    except OSError:
+        return None
+    if _panel_version and _panel_version[0] == mtime:
+        return _panel_version[1]
+
+    version: str | None = None
+    name: str | None = None
+    try:
+        raw = db.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    for line in raw.splitlines():
+        if not line:
+            name = None
+        elif line.startswith("P:"):
+            name = line[2:].strip()
+        elif line.startswith("V:") and name == PANEL_PACKAGE:
+            version = line[2:].strip()
+            break
+    _panel_version = (mtime, version)
+    return version
+
 
 # The panel runs as root so it can enable/disable units, but process killing is
 # limited to this uid: the interactive user, never root and never the panel.
@@ -511,6 +580,8 @@ def _rule_summary(rule: dict[str, Any]) -> str:
                 parts.append(f"sport {right}")
             elif field == "saddr":
                 parts.append(f"from {right}")
+            elif field == "daddr":
+                parts.append(f"to {right}")
             elif field == "type":
                 # Long ICMP type sets are noise; the comment already says what it is.
                 stripped = [str(v) for v in str(right).split(", ")]
@@ -555,7 +626,7 @@ def _rule_fields(rule: dict[str, Any]) -> tuple[str | None, int | None, str | No
             protocol = payload["protocol"]
             if field == "dport" and isinstance(right, int):
                 port = right
-        elif field == "saddr":
+        elif field in ("saddr", "daddr"):
             if isinstance(right, dict) and "prefix" in right:
                 source = f"{right['prefix'].get('addr')}/{right['prefix'].get('len')}"
             elif isinstance(right, str):
@@ -565,31 +636,42 @@ def _rule_fields(rule: dict[str, Any]) -> tuple[str | None, int | None, str | No
     return protocol, port, source
 
 
-def firewall_info(run: Callable[..., Any] = subprocess.run, chain: str = "input") -> dict[str, Any]:
-    """Rules of the nftables input chain, with the handles needed to delete them."""
-    ok, output = _nft(run, ["-j", "list", "chain", NFT_TABLE, chain])
+FIREWALL_CHAINS = ("input", "output")
+
+
+def firewall_info(run: Callable[..., Any] = subprocess.run) -> dict[str, Any]:
+    """Rules of the nftables input and output chains, with their handles.
+
+    Both chains are read in one pass so the panel can show and edit them side
+    by side; `chain` on each rule is what the write paths key on.
+    """
+    ok, output = _nft(run, ["-j", "list", "table", NFT_TABLE])
     if not ok:
-        return {"available": False, "error": output, "policy": None, "rules": [], "port_16888": False}
+        return {"available": False, "error": output, "policy": None, "rules": [],
+                "port_16888": False, "policies": {}}
 
     try:
         payload = json.loads(output)
     except ValueError:
         return {"available": False, "error": "nft returned malformed JSON", "policy": None, "rules": [],
-                "port_16888": False}
+                "port_16888": False, "policies": {}}
 
-    policy = None
+    policies: dict[str, str | None] = {}
     rules: list[dict[str, Any]] = []
     for item in payload.get("nftables") or []:
         if "chain" in item:
-            policy = item["chain"].get("policy")
+            chain = item["chain"]
+            if chain.get("name") in FIREWALL_CHAINS:
+                policies[chain["name"]] = chain.get("policy")
         rule = item.get("rule")
-        if not rule or rule.get("chain") != chain:
+        if not rule or rule.get("chain") not in FIREWALL_CHAINS:
             continue
         comment = rule.get("comment") or ""
         summary = _rule_summary(rule)
         protocol, port, source = _rule_fields(rule)
         rules.append({
             "handle": rule.get("handle"),
+            "chain": rule["chain"],
             "comment": comment,
             "summary": summary,
             "protocol": protocol,
@@ -600,30 +682,46 @@ def firewall_info(run: Callable[..., Any] = subprocess.run, chain: str = "input"
     return {
         "available": True,
         "error": None,
-        "policy": policy,
+        # `policy` stays the input chain's for older clients; per-chain values
+        # live in `policies`.
+        "policy": policies.get("input"),
+        "policies": policies,
         "rules": rules,
-        "port_16888": any("16888" in r["summary"] for r in rules),
+        "port_16888": any("16888" in r["summary"] for r in rules if r["chain"] == "input"),
     }
 
 
+def _chain_or_default(chain: Any) -> str | None:
+    """Only the two managed chains are addressable; anything else is refused."""
+    if chain is None or chain == "":
+        return "input"
+    if not isinstance(chain, str) or chain not in FIREWALL_CHAINS:
+        return None
+    return chain
+
+
 def firewall_add(run: Callable[..., Any], port: Any, protocol: Any, source: Any,
-                 comment: str = "") -> tuple[bool, str]:
-    """Insert an accept rule at the top of the input chain."""
+                 comment: str = "", chain: Any = "input") -> tuple[bool, str]:
+    """Insert an accept rule at the top of the input or output chain."""
+    target = _chain_or_default(chain)
+    if target is None:
+        return False, "bad chain"
     parsed, error = _parse_rule(port, protocol, source)
     if parsed is None:
         return False, error
     proto, port_number, origin = parsed
     label = _managed_label(comment)
 
-    args = ["add", "rule", NFT_TABLE, "input"]
-    args += _match_args(proto, port_number, origin)
+    args = ["add", "rule", NFT_TABLE, target]
+    args += _match_args(proto, port_number, origin, target)
     args += ["accept", "comment", f'"{label}"']
     ok, output = _nft(run, args)
-    return (True, f"{proto}/{port_number} accepted") if ok else (False, output)
+    return (True, f"{target} {proto}/{port_number} accepted") if ok else (False, output)
 
 
 def firewall_update(run: Callable[..., Any], handle: Any, port: Any, protocol: Any, source: Any,
-                    comment: str = "", managed: bool = False) -> tuple[bool, str]:
+                    comment: str = "", managed: bool = False,
+                    chain: Any = "input") -> tuple[bool, str]:
     """Rewrite a rule in place; `replace rule ... handle N` keeps the handle.
 
     A rule that was not created here keeps its plain comment, so it does not
@@ -631,14 +729,17 @@ def firewall_update(run: Callable[..., Any], handle: Any, port: Any, protocol: A
     """
     if not isinstance(handle, int) or isinstance(handle, bool) or handle <= 0:
         return False, "bad handle"
+    target = _chain_or_default(chain)
+    if target is None:
+        return False, "bad chain"
     parsed, error = _parse_rule(port, protocol, source)
     if parsed is None:
         return False, error
     proto, port_number, origin = parsed
     label = _managed_label(comment) if managed else (comment.strip()[:80] if isinstance(comment, str) else "")
 
-    args = ["replace", "rule", NFT_TABLE, "input", "handle", str(handle)]
-    args += _match_args(proto, port_number, origin)
+    args = ["replace", "rule", NFT_TABLE, target, "handle", str(handle)]
+    args += _match_args(proto, port_number, origin, target)
     args += ["accept"]
     if label:
         args += ["comment", f'"{label}"']
@@ -662,18 +763,26 @@ def _managed_label(comment: str) -> str:
     return MANAGED_COMMENT + (f": {extra}" if extra else "")
 
 
-def _match_args(protocol: str, port: int, origin: str) -> list[str]:
+def _match_args(protocol: str, port: int, origin: str, chain: str = "input") -> list[str]:
+    """Build the match expression for a rule.
+
+    The address field follows the chain: inbound rules filter by sender, so
+    they use saddr; outbound rules filter by destination, so they use daddr.
+    """
     args: list[str] = []
     if origin:
-        args += ["ip", "saddr", origin]
+        args += ["ip", "daddr" if chain == "output" else "saddr", origin]
     args += [protocol, "dport", str(port)]
     return args
 
 
-def firewall_delete(run: Callable[..., Any], handle: Any) -> tuple[bool, str]:
+def firewall_delete(run: Callable[..., Any], handle: Any, chain: Any = "input") -> tuple[bool, str]:
     if not isinstance(handle, int) or isinstance(handle, bool) or handle <= 0:
         return False, "bad handle"
-    ok, output = _nft(run, ["delete", "rule", NFT_TABLE, "input", "handle", str(handle)])
+    target = _chain_or_default(chain)
+    if target is None:
+        return False, "bad chain"
+    ok, output = _nft(run, ["delete", "rule", NFT_TABLE, target, "handle", str(handle)])
     return (True, f"rule {handle} deleted") if ok else (False, output)
 
 
@@ -858,6 +967,7 @@ class Collector:
                 "collected_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                 "device": {"name": DEVICE_NAME, "soc": SOC_MODEL, "hostname": os.uname().nodename,
                            "kernel": os.uname().release,
+                           "distro": distro_info(),
                            "login_user": _user_name(KILL_UID) if os.getuid() == 0 else pwd.getpwuid(os.getuid()).pw_name},
                 "uptime_seconds": uptime_seconds(self.proc_root),
                 "battery": battery_info(self.sys_root),
@@ -882,7 +992,8 @@ class Collector:
         now = time.monotonic()
         if self._settings_cache and now - self._settings_cache[0] < 5:
             return self._settings_cache[1]
-        value = {"blank-screen": toggle_state(self.run, "blank-screen")}
+        value = {"blank-screen": toggle_state(self.run, "blank-screen"),
+                 "panel-version": panel_version()}
         self._settings_cache = (now, value)
         return value
 
@@ -904,19 +1015,21 @@ class Collector:
         self._firewall_cache = (now, value)
         return value
 
-    def firewall_add(self, port: Any, protocol: Any, source: Any, comment: Any) -> tuple[bool, str]:
-        ok, message = firewall_add(self.run, port, protocol, source, comment or "")
+    def firewall_add(self, port: Any, protocol: Any, source: Any, comment: Any,
+                     chain: Any = "input") -> tuple[bool, str]:
+        ok, message = firewall_add(self.run, port, protocol, source, comment or "", chain)
         self._firewall_cache = None
         return ok, message
 
-    def firewall_delete(self, handle: Any) -> tuple[bool, str]:
-        ok, message = firewall_delete(self.run, handle)
+    def firewall_delete(self, handle: Any, chain: Any = "input") -> tuple[bool, str]:
+        ok, message = firewall_delete(self.run, handle, chain)
         self._firewall_cache = None
         return ok, message
 
     def firewall_update(self, handle: Any, port: Any, protocol: Any, source: Any,
-                        comment: Any, managed: Any = False) -> tuple[bool, str]:
-        ok, message = firewall_update(self.run, handle, port, protocol, source, comment or "", managed is True)
+                        comment: Any, managed: Any = False, chain: Any = "input") -> tuple[bool, str]:
+        ok, message = firewall_update(self.run, handle, port, protocol, source, comment or "",
+                                      managed is True, chain)
         self._firewall_cache = None
         return ok, message
 
@@ -1013,13 +1126,15 @@ class Handler(BaseHTTPRequestHandler):
             ok, message = self.collector.docker_action(urlsplit(self.path).path[len("/api/docker/"):], body.get("name"))
         elif urlsplit(self.path).path == "/api/firewall/add":
             ok, message = self.collector.firewall_add(
-                body.get("port"), body.get("protocol"), body.get("source"), body.get("comment"))
+                body.get("port"), body.get("protocol"), body.get("source"), body.get("comment"),
+                body.get("chain", "input"))
         elif urlsplit(self.path).path == "/api/firewall/delete":
-            ok, message = self.collector.firewall_delete(body.get("handle"))
+            ok, message = self.collector.firewall_delete(body.get("handle"), body.get("chain", "input"))
         elif urlsplit(self.path).path == "/api/firewall/update":
             ok, message = self.collector.firewall_update(
                 body.get("handle"), body.get("port"), body.get("protocol"),
-                body.get("source"), body.get("comment"), body.get("managed"))
+                body.get("source"), body.get("comment"), body.get("managed"),
+                body.get("chain", "input"))
         elif urlsplit(self.path).path == "/api/settings/set":
             ok, message = self.collector.setting_set(body.get("name"), body.get("enabled"))
         elif urlsplit(self.path).path == "/api/cpufreq/set":
