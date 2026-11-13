@@ -204,16 +204,15 @@ jobs:
           fi
 
       - name: Fetch pmaports and apply device overlay
-        env:
-          VERSION: ${{ steps.cfg.outputs.version }}
         run: |
           set -euo pipefail
           # pull 只更新不克隆，所以手动 clone
           git clone --depth 1 "$PMAPORTS_REPO" "$WORK/cache_git/pmaports"
           ap="$WORK/cache_git/pmaports"
 
-          git clone --depth 1 --branch "$VERSION" \
-            "$DEFS_REPO" "$RUNNER_TEMP/device-repo"
+          # 包定义仓库不开 tag，默认分支就是最新的设备包定义；换了内核或
+          # 设备树要发版时，由 packages/$VERSION 里的预编译 apk 决定版本。
+          git clone --depth 1 "$DEFS_REPO" "$RUNNER_TEMP/device-repo"
 
           # 上游这三个包是 archived 状态，先删掉再放我们的
           rm -rf "$ap"/device/archived/device-$DEVICE \
@@ -223,9 +222,10 @@ jobs:
                  "$ap"/device/testing/firmware-$DEVICE \
                  "$ap"/device/testing/linux-$DEVICE
 
+          # 仓库顶层就是三个包目录，和 pmaports 的 device/testing/ 同构
           for p in device-$DEVICE firmware-$DEVICE linux-$DEVICE; do
             test -d "$RUNNER_TEMP/device-repo/$p" || {
-              echo "::error::tag $VERSION 里没有 $p"
+              echo "::error::$DEFS_REPO 的默认分支里没有 $p"
               exit 1
             }
             cp -r "$RUNNER_TEMP/device-repo/$p" "$ap/device/testing/"
