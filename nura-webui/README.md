@@ -7,7 +7,7 @@
 
 | 分类 | 内容 |
 |---|---|
-| 概览 | 系统信息（发行版、架构、内核、主页）、电池、供电详情、内存、存储、运行时间、CPU 三簇与运行模式、GPU |
+| 概览 | 系统信息（发行版、架构、内核）、电池、供电详情、内存、存储、运行时间、CPU 三簇与运行模式、GPU |
 | 温度 | 28 个热区，各自的降频阈值 |
 | 网络 | Wi-Fi、USB 网络、全部接口地址 |
 | 服务 | systemd 单元，失败的高亮 |
@@ -40,7 +40,11 @@ scp nura-webui-*.apk user@<设备地址>:/tmp/
 ssh user@<设备地址> 'sudo apk add --allow-untrusted /tmp/nura-webui-*.apk'
 ```
 
-装完服务就起来了，`nftables` 的放行规则也一起生效。
+装完服务就起来了，Docker 也一起装好并设为开机自启，`nftables` 的放行规则
+同时生效。已经装过旧版时，apk 会走 `post-upgrade`，同样会拉起 Docker 并重启
+面板——两条路径都要维护，缺一个就会在对应场景静默跳过。
+
+详见下面的「Docker 与容器页」。
 
 ## 网络页的速率
 
@@ -110,10 +114,63 @@ sysfs 都是 `root:root 0644`，面板以 uid 10000 运行写不了，所以走
 `nura-webui.service` 以 uid 10000 运行，不属于 root：
 
 - 进程列表里只有自己的进程能结束，面板自身和 PID 1 受保护
-- 加入 `docker` 组，以便读 `docker.sock`
+- 加入 `docker` 组，以便读 `docker.sock`（见下一节）
 
 Nura 用的是 `99-default.preset`（`disable *`）加上按文件名顺序、先命中先生效的
 预设，所以 `90-nura-webui.preset` 必须排在它前面，服务才会自动启用。
+
+## Docker 与容器页
+
+Docker 是硬依赖（`depends="python3 nftables docker"`），装面板时一起装好，
+并设为开机自启。
+
+这个依赖不只是为了容器页有数据。`nura-webui.service` 里写着
+`SupplementaryGroups=docker`，而 systemd 在 fork 之前就要解析这个组名：
+**组不存在时整个单元直接启动失败**，日志是
+
+```
+Failed to determine supplementary groups: No such process
+Failed at step GROUP spawning /usr/bin/python3
+status=216/GROUP
+```
+
+进程根本没跑起来，面板不监听端口，浏览器打不开。`docker-engine` 包的
+pre-install 会 `addgroup -S docker`，所以只要 Docker 装上，组就一定存在。
+不要为了“没有容器需求”把依赖去掉——那会让面板彻底起不来。
+
+### 为什么要写进 preset 而不只是 post-install
+
+只在 `post-install` 里 `systemctl enable docker` 是不够的。apk 装完本包后会跑
+`postmarketos-base-systemd` 触发器，它按 `99-default.preset` 把整个预设集重新
+应用一遍，刚建好的 `docker.service` 启动链接随即被 `disable *` 删掉——面板能起来，
+Docker 却停在 `disabled`，容器页永远是空的。
+
+所以 `90-nura-webui.preset` 里同时启用三个单元：
+
+```
+enable nura-webui.service
+enable docker.service
+enable docker.socket
+```
+
+`docker.socket` 要单独列出来。实测升级后有 `docker` 为 `enabled`、`docker.socket` 仍为
+`disabled` 的情况——预设只在新增单元时才应用，升级时不会重跑。这种状态下把
+`docker.service` 停掉再拉起，`dockerd` 会以
+`no sockets found via socket activation: make sure the service was started by systemd`
+退出，`docker.service` 随即进入 `failed` 并触发重启次数上限。显式启用 socket
+可以避免这个状态，所以三个单元一起 enable。
+
+post-install 和 post-upgrade 里仍然各写一遍 `systemctl enable docker.socket
+docker.service`，用来兜住升级路径和预设不生效的场合。
+
+### 权限
+
+`docker.sock` 是 `root:docker 0660`，面板靠 `SupplementaryGroups=docker`
+拿到组权限，不需要额外能力位。会话里 `id` 看不到 docker 组是正常的——那是
+systemd 给服务进程单独加的补充组，不进 `/etc/group` 的成员列表。
+
+容器页可以启动、暂停、停止容器。动作要匹配当前状态，否则直接拒绝；
+容器名必须是面板自己列举出来的那一个，不接受任意输入。
 
 ## 设置
 

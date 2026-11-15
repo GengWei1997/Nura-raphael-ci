@@ -10,6 +10,10 @@ if nft list table inet filter >/dev/null 2>&1; then
 		|| nft insert rule inet filter input tcp dport 16888 accept comment "\"$MARKER\""
 fi
 
+# 与 post-install 一致：确保 Docker 已启用并启动，容器页才有数据可读。
+systemctl enable docker.socket docker.service || true
+systemctl start docker.service || true
+
 systemctl daemon-reload || true
 systemctl enable nura-webui.service || true
 systemctl restart nura-webui.service || true

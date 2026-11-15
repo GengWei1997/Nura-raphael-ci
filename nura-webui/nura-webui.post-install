@@ -10,6 +10,15 @@ if nft list table inet filter >/dev/null 2>&1; then
 		|| nft insert rule inet filter input tcp dport 16888 accept comment "\"$MARKER\""
 fi
 
+# docker 是 depends，装本包时一定已经装好，但引擎默认不自动启动（Nura 用的是
+# 99-default.preset 的 "disable *"）。容器页要读 /var/run/docker.sock，所以这里
+# 显式 enable 并启动它。enable 失败不致命，面板本身仍要能起来。
+#
+# socket 也要单独 enable：升级时 preset 不会再应用（它只在新增单元时生效），
+# 只靠 docker.service 的 Requires 拉起 socket 会留下 socket 仍 disabled 的状态。
+systemctl enable docker.socket docker.service || true
+systemctl start docker.service || true
+
 systemctl daemon-reload || true
 # 不能用 enable --now：服务已在跑时它什么也不做，而 server.py 只在启动时读
 # 一次，旧进程会一直留着。所以无条件 restart。

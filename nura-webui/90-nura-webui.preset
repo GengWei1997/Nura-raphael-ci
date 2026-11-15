@@ -1,4 +1,14 @@
 # Presets are applied in filename order and the first match wins, so this has
 # to sort before 99-default.preset, whose "disable *" would otherwise disable
-# the unit. 90-base.preset sorts earlier but does not mention it.
+# the units. 90-base.preset sorts earlier but does not mention them.
+#
+# docker is enabled here rather than only in post-install: the
+# postmarketos-base-systemd trigger reapplies the whole preset set after every
+# apk transaction that touches a unit, so a plain `systemctl enable` in
+# post-install gets undone by 99-default.preset right afterwards.
 enable nura-webui.service
+enable docker.service
+# docker.service has Requires/After=docker.socket and dockerd refuses to come up
+# with "no sockets found via socket activation" when the socket was left in a
+# stale state, so enable it explicitly instead of relying on the implicit pull.
+enable docker.socket

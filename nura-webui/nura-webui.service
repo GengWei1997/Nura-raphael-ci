@@ -1,14 +1,17 @@
 [Unit]
 Description=Nura web management panel for xiaomi-raphael
-After=network-online.target NetworkManager.service nftables.service
-Wants=network-online.target
+After=network-online.target NetworkManager.service nftables.service docker.service
+Wants=network-online.target docker.service
 
 [Service]
 Type=simple
 # The panel kills processes it owns, so it must not run as root.
 # 10000 is the uid pmbootstrap gives the default user; the name may differ.
 User=10000
-# docker.sock is root:docker 0660.
+# docker.sock is root:docker 0660. docker-engine's pre-install creates the
+# group, so this resolves as long as the docker dependency is installed; if the
+# group is missing systemd fails the whole unit with 216/GROUP instead of
+# starting it without the container page.
 SupplementaryGroups=docker
 # Editing nftables needs CAP_NET_ADMIN without becoming root; ambient keeps it
 # across exec so `nft` inherits it.
