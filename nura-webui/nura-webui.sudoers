@@ -11,12 +11,13 @@
 # the value. That is safe because the script only accepts the three fixed mode
 # names and re-validates them itself.
 #
-# The direct-power unit is oneshot with RemainAfterExit, so `enable` alone
-# would leave the bind mounts unmade until the next boot; the panel starts it
-# through the same fixed command line. Both verbs are granted explicitly rather
-# than as a wildcard so no other unit can be reached through them.
+# Both toggles are started rather than merely enabled: the work happens inside
+# the unit at start, so `enable` alone would defer it to the next boot.
+#
+# Every verb is granted explicitly rather than as a wildcard so no other unit
+# can be reached through these rules.
 #10000 ALL=(root) NOPASSWD: \
-    /usr/bin/systemctl enable blank_screen.service, \
+    /usr/bin/systemctl enable --now blank_screen.service, \
     /usr/bin/systemctl disable --now blank_screen.service, \
     /usr/bin/systemctl enable --now direct_power.service, \
     /usr/bin/systemctl disable --now direct_power.service, \

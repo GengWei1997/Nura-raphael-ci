@@ -1,10 +1,23 @@
 [Unit]
-Description=Auto-blank screen 15s after boot
+Description=Blank the screen 15s after start on xiaomi-raphael
+Documentation=https://github.com/GengWei1997/Nura-raphael-ci
 After=multi-user.target
 
 [Service]
+# The 15 s delay applies both at boot and when the panel switches it on: the
+# switch starts this unit rather than blanking directly, so flipping it does not
+# blank the screen under the reader's hand after a fraction of a second.
+#
+# Type=simple keeps boot moving -- systemd does not wait for ExecStart to
+# finish, so the delay never holds up multi-user.target. RemainAfterExit keeps
+# the unit "active" once it has blanked, so the switch state matches reality
+# and ExecStop below has something to undo.
 Type=simple
-ExecStart=/bin/sh -c '/bin/sleep 15; exec env TERM=linux setterm --blank force </dev/tty1'
+RemainAfterExit=yes
+ExecStart=/bin/sh -c '/bin/sleep 15; exec /usr/libexec/nura-blank on'
+# Turning the switch off cancels a countdown that is still running and lights
+# the screen at once, which is why the unblank lives here and not in a timer.
+ExecStop=/usr/libexec/nura-blank off
 
 [Install]
 WantedBy=multi-user.target

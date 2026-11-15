@@ -14,7 +14,7 @@
 | 容器 | Docker 容器，可启动、暂停、停止 |
 | 防火墙 | nftables 入站/出站规则，可添加、编辑、删除 |
 | 进程 | 按 CPU 或内存排序，可结束自己的进程 |
-| 设置 | 设备功能开关（目前是自动熄屏）与面板版本、设备、主机名 |
+| 设置 | 设备功能开关（自动熄屏、直供电模式）与面板版本、设备、主机名 |
 
 界面默认简体中文，右上角可切英文。语言、刷新间隔和当前分类存在浏览器里，
 也认 URL 里的 `#containers` 这类锚点。
@@ -179,41 +179,30 @@ systemd 给服务进程单独加的补充组，不进 `/etc/group` 的成员列�
 
 ### 自动熄屏
 
-控制 `blank_screen.service`：开机 15 秒后执行 `setterm --blank force` 关掉屏幕，
-用来减少 OLED 烧屏和待机耗电。
+`blank_screen.service` 睡 15 秒后调 `/usr/libexec/nura-blank on` 熄屏。
+开机和面板开关走的是同一条路径，所以**两边都是 15 秒**。
 
-这个单元由用户在设备上自己创建，不是面板的一部分：
+- **开启**：`enable --now` 启动单元，15 秒后熄屏
+- **关闭**：`disable --now` 终止仍在计时的 sleep，并立即点亮屏幕
 
-```sh
-sudo tee /etc/systemd/system/blank_screen.service > /dev/null <<'EOF'
-[Unit]
-Description=Auto-blank screen 15s after boot
-After=multi-user.target
+`RemainAfterExit=yes` 让单元熄屏后保持 `active`，这样开关显示的状态和实际情况
+一致，`ExecStop` 也有东西可以撤销。`Type=simple` 不会阻塞 `multi-user.target`，
+所以开机时的 15 秒不会拖慢启动。
 
-[Service]
-Type=simple
-ExecStart=/bin/sh -c '/bin/sleep 15; exec env TERM=linux setterm --blank force </dev/tty1'
-
-[Install]
-WantedBy=multi-user.target
-EOF
-sudo systemctl daemon-reload
-sudo systemctl enable blank_screen.service
-```
-
-面板上的「开」只是 `systemctl enable`，下次开机才熄屏——如果在这里直接
-`--now`，一点开关屏幕就会在 15 秒后黑掉，看面板的人会莫名其妙。「关」用的
-是 `disable --now`，会顺手停掉正在倒计时的那个 sleep。
+`setterm` 通过 stdin 和 console 对话，所以脚本里显式重定向 `</dev/tty1`，
+否则它读到没有终端就直接退出，什么都不做。
 
 ### 权限
 
 面板以 uid 10000 运行，改 systemd 单元需要 root。这里不用 sudoers 放行整个
-`systemctl`，而是只授权两条完整命令：
+`systemctl`，而是只授权几条完整命令：
 
 ```
 #10000 ALL=(root) NOPASSWD: \
-    /usr/bin/systemctl enable blank_screen.service, \
-    /usr/bin/systemctl disable --now blank_screen.service
+    /usr/bin/systemctl enable --now blank_screen.service, \
+    /usr/bin/systemctl disable --now blank_screen.service, \
+    /usr/bin/systemctl enable --now direct_power.service, \
+    /usr/bin/systemctl disable --now direct_power.service
 ```
 
 sudo 是按完整命令行匹配的，所以 `systemctl restart sshd`、`enable evil.service`、

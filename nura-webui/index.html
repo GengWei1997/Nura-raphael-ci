@@ -583,9 +583,6 @@ body{
             <h3 data-i18n="navSettings">设置</h3>
             <span class="chip" id="settings-chip">—</span>
           </div>
-          <div class="sub" data-i18n="settingsHint" style="margin-bottom:10px">
-            开关直接改设备上的 systemd 单元，改动保留到下次开机。
-          </div>
           <div class="toggles" id="settings-toggles"><div class="empty">—</div></div>
           <div class="sub" id="settings-message" style="margin-top:8px"></div>
           <div class="meta">
@@ -657,11 +654,11 @@ const I18N = {
     cores: '核心', mounts: '个挂载点',
     poll: n => `每 ${n} 秒自动刷新`,
     access: '面板端口 16888',
-    settingsHint: '开关直接改设备上的 systemd 单元，改动保留到下次开机。',
     panelVersion: '面板版本', deviceName: '设备', hostName: '主机名',
     blankName: '自动熄屏',
-    blankDesc: '开机 15 秒后关闭屏幕，减少 OLED 烧屏和待机耗电。开启后从下次开机生效；关闭会立刻停止并取消自启。',
+    blankDesc: '开启后 15 秒熄屏，减少 OLED 烧屏和待机耗电；关闭会立即点亮并取消计时。开启后立即生效，重启后保留。',
     blankOn: '已开启', blankOff: '已关闭',
+    enabledCount: '项已开启',
     directName: '直供电模式',
     directDesc: '拆掉电池、从电池小板直接供电时开启。系统会把电量报告为 100%，避免按虚假的放电曲线关机。'
       + '电压、电流和温度仍显示实测值。开启后立即生效，重启后保留。',
@@ -716,12 +713,13 @@ const I18N = {
     cores: 'cores', mounts: 'mounts',
     poll: n => `Refreshes every ${n} seconds`,
     access: 'Panel port 16888',
-    settingsHint: 'Switches act on real systemd units and survive a reboot.',
     panelVersion: 'Panel version', deviceName: 'Device', hostName: 'Hostname',
     blankName: 'Auto blank screen',
-    blankDesc: 'Blanks the display 15 s after boot to limit OLED burn-in and standby drain. '
-      + 'Turning it on takes effect at the next boot; turning it off also cancels a pending blank.',
+    blankDesc: 'Blanks the display 15 s after switching on, to limit OLED burn-in and standby '
+      + 'drain. Switching it off lights the screen at once and cancels the countdown. '
+      + 'Applies at once and survives a reboot.',
     blankOn: 'On', blankOff: 'Off',
+    enabledCount: 'on',
     directName: 'Direct power',
     directDesc: 'For a phone running on a supply wired to the battery flex with the cell removed. '
       + 'The system reports 100% so the invented discharge curve cannot shut it down; voltage, '
@@ -1147,11 +1145,18 @@ function renderSettings(settings) {
   text('panel-version', settings['panel-version'] || '—');
   text('panel-device', device.name || '—');
   text('panel-host', device.hostname || '—');
-  const available = blank.available === true;
-  text('settings-chip', available
-    ? (blank.enabled ? t('blankOn') : t('blankOff'))
-    : t('unitMissing'));
-  $('settings-chip').className = 'chip' + (available ? (blank.enabled ? '' : ' warn') : ' bad');
+
+  // With more than one switch, a single "on/off" chip would have to pick one
+  // unit and misreport the rest, so it counts how many are turned on instead.
+  const toggles = [blank, direct].filter((s) => s.available === true);
+  const on = toggles.filter((s) => s.enabled === true).length;
+  const missing = [blank, direct].some((s) => s.available !== true);
+  if (missing) {
+    text('settings-chip', t('unitMissing'));
+    $('settings-chip').className = 'chip bad';
+  } else {
+    text('settings-chip', `${on} / ${toggles.length} ${t('enabledCount')}`);    $('settings-chip').className = 'chip' + (on ? '' : ' warn');
+  }
 
   box.replaceChildren(
     toggleRow('blank', { ...blank, name: 'blank-screen' }, 'blank_screen.service'),

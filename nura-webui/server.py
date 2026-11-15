@@ -807,11 +807,15 @@ PROTECTED_COMMS = {"nura-webui"}
 # through the two commands granted in /etc/sudoers.d/nura-webui; nothing else
 # is permitted.
 TOGGLES = {
+    # The 15 s delay is the point: the switch starts this unit instead of
+    # blanking directly, so flipping it gives the reader 15 s before the screen
+    # goes dark. RemainAfterExit makes "active" mean "blanked" afterwards.
     "blank-screen": {
         "unit": "blank_screen.service",
+        "activate": True,
     },
-    # Oneshot with RemainAfterExit, so `enable` on its own leaves the mounts
-    # unmade until the next boot. This toggle starts and stops the unit.
+    # Oneshot with RemainAfterExit: the unit itself does the work at start, so
+    # enabling has to start it as well.
     "direct-power": {
         "unit": "direct_power.service",
         "activate": True,
@@ -854,17 +858,18 @@ def toggle_set(run: Callable[..., Any], name: str, want: bool) -> tuple[bool, st
         return False, "unknown toggle"
     if not isinstance(want, bool):
         return False, "bad request"
+    action = "enable" if want else "disable"
+
     if want:
-        # Enabling alone is enough for the blanker: starting the unit would
-        # blank the screen 15 s later, which nobody wants triggered by
-        # flipping a switch. A unit marked activate has to run now instead,
-        # because its work happens at start and not at boot.
+        # Starting the unit is what makes the switch take effect now; enabling
+        # alone would defer it to the next boot. The 15 s delay is inside the
+        # unit, so it applies here exactly as it does at boot.
         command = [SYSTEMCTL, "enable", "--now", spec["unit"]] if spec.get("activate") \
             else [SYSTEMCTL, "enable", spec["unit"]]
     else:
-        # --now also stops a sleep that is already counting down.
+        # --now runs ExecStop, which is what undoes the unit's work: unblanking
+        # the screen, or unmounting the direct-power override.
         command = [SYSTEMCTL, "disable", "--now", spec["unit"]]
-    action = "enable" if want else "disable"
     try:
         proc = run(["sudo", "-n", *command],
                    capture_output=True, text=True, timeout=30)

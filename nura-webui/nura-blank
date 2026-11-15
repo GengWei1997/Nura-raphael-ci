@@ -1,0 +1,39 @@
+#!/bin/sh
+# Force the console blank state for the panel's screen switch.
+#
+#   nura-blank on|off
+#
+# `on` blanks the display immediately and `off` wakes it immediately; nothing is
+# scheduled and no timer is involved. The unit that calls this is deliberately
+# oneshot: the panel wants the state to change the moment the switch is flipped,
+# not at the next boot.
+#
+# setterm talks to the console through stdin, so the tty has to be opened
+# explicitly -- without the reopen it reads that there is no terminal and
+# exits without doing anything.
+set -eu
+
+TTY=/dev/tty1
+
+die() {
+	echo "$*" >&2
+	exit 1
+}
+
+[ -c "$TTY" ] || die "$TTY is not available"
+
+case "${1:-}" in
+on)
+	env TERM=linux setterm --blank force <"$TTY" || die "blank failed"
+	echo "screen blanked"
+	;;
+off)
+	# poke resets the inactivity timer and unblanks in one go; writing 0 to
+	# /sys/class/graphics/fb0/blank also works but is fbcon-specific.
+	env TERM=linux setterm --blank poke <"$TTY" || die "unblank failed"
+	echo "screen on"
+	;;
+*)
+	die "usage: nura-blank on|off"
+	;;
+esac
