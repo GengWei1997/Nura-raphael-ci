@@ -1,0 +1,23 @@
+[Unit]
+Description=Report a full battery for direct power on xiaomi-raphael
+Documentation=https://github.com/GengWei1997/Nura-raphael-ci
+# The panel is only the visible reader. Ordering this early keeps boot-time
+# consumers from ever seeing the invented percentage, not just the web page.
+After=local-fs.target
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# The charger driver has not necessarily registered the gauge by the time this
+# runs; snapshotting then yields an empty uevent and the bind mount would hide
+# every real field for the whole uptime. The gauge is ready when the uevent
+# actually contains a CAPACITY line. `[ -s file ]` cannot answer that: sysfs
+# attributes report st_size as the page size (4096) even when reading them
+# returns nothing, so the test passes on an empty attribute.
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 200); do grep -q "^POWER_SUPPLY_CAPACITY=" /sys/class/power_supply/battery/uevent 2>/dev/null && exit 0; sleep 0.1; done; echo "battery gauge did not come up" >&2; exit 1'
+ExecStart=/usr/libexec/nura-direct-power start
+ExecStop=/usr/libexec/nura-direct-power stop
+
+[Install]
+WantedBy=multi-user.target

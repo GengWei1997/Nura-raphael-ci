@@ -1,0 +1,97 @@
+#!/bin/sh
+# Make the system report a full battery when the phone runs on a bench supply
+# wired to the battery flex instead of a real cell.
+#
+#   nura-direct-power start|stop
+#
+# With the cell removed the PM8150B gauge still measures VBAT, but because USB
+# input stays at 0 V it concludes the pack is discharging and integrates that
+# into a fake capacity that walks downwards. Nothing actually drains, yet every
+# reader of capacity -- the panel, scripts, a future upower -- shows a battery
+# sliding towards zero.
+#
+# capacity is read-only in sysfs (mode 0444, and the driver offers no writable
+# alternative), so the only way to change what the system sees without patching
+# the kernel module is to bind-mount a substitute over the two files that carry
+# the value. Both are covered because they are read independently: `uevent` is
+# what the panel and udev parse, `capacity` is what plain `cat` returns.
+#
+# Only CAPACITY and STATUS are rewritten. Voltage, current and temperature keep
+# their real values, so the actual state of the supply stays observable -- this
+# hides the fake percentage, not the measurements.
+set -eu
+
+SYSFS=/sys/class/power_supply/battery
+RUNDIR=/run/nura-direct-power
+
+die() {
+	echo "$*" >&2
+	exit 1
+}
+
+running() {
+	mount | grep -q " $1 "
+}
+
+case "${1:-}" in
+start)
+	# /sys/class/power_supply/battery is a symlink into the device tree.
+	# Mounting through it works, but umount needs the canonical path, so
+	# resolve it once and use that everywhere.
+	[ -d "$SYSFS" ] || die "$SYSFS does not exist"
+	target=$(readlink -f "$SYSFS")
+	[ -f "$target/uevent" ] || die "$target/uevent does not exist"
+
+	# Already applied: say so and stop. Snapshotting again would read our own
+	# bind-mounted uevent instead of the driver's, and cp then fails with
+	# "are the same file" -- harmless, but it aborts the script under set -eu.
+	if running "$target/uevent" && running "$target/capacity"; then
+		echo "direct power: already reporting 100%"
+		exit 0
+	fi
+
+	# Half-applied state from an interrupted start: drop whatever is there and
+	# rebuild both, so the snapshot is taken from the driver and not from a
+	# stale copy of our own file.
+	umount "$target/uevent" 2>/dev/null || true
+	umount "$target/capacity" 2>/dev/null || true
+
+	mkdir -p "$RUNDIR"
+
+	# Snapshot the live uevent so every real field survives; only the two
+	# lines that drive the reported state are replaced. An empty snapshot
+	# would hide every measurement behind the bind mount for the whole
+	# uptime, so refuse it rather than mount something useless.
+	#
+	# The check is on content, not size: sysfs attributes report st_size as
+	# the page size even when a read returns nothing, so `[ -s ]` is always
+	# true here and would let an empty snapshot through.
+	cp "$target/uevent" "$RUNDIR/uevent"
+	grep -q '^POWER_SUPPLY_CAPACITY=' "$RUNDIR/uevent" \
+		|| die "uevent has no CAPACITY line; the gauge is not ready"
+	sed -i \
+		-e 's/^POWER_SUPPLY_CAPACITY=.*/POWER_SUPPLY_CAPACITY=100/' \
+		-e 's/^POWER_SUPPLY_STATUS=.*/POWER_SUPPLY_STATUS=Full/' \
+		"$RUNDIR/uevent"
+
+	echo 100 >"$RUNDIR/capacity"
+
+	# Idempotent: a second start must not stack a mount on top of itself.
+	running "$target/uevent" || mount --bind "$RUNDIR/uevent" "$target/uevent"
+	running "$target/capacity" || mount --bind "$RUNDIR/capacity" "$target/capacity"
+
+	echo "direct power: reporting 100%"
+	;;
+stop)
+	target=$(readlink -f "$SYSFS" 2>/dev/null) || target=$SYSFS
+	# Unmount even if the paths already look clean, so a half-applied state
+	# from an interrupted start is recovered rather than left behind.
+	umount "$target/uevent" 2>/dev/null || true
+	umount "$target/capacity" 2>/dev/null || true
+	rm -rf "$RUNDIR"
+	echo "direct power: reporting the battery as measured"
+	;;
+*)
+	die "usage: nura-direct-power start|stop"
+	;;
+esac

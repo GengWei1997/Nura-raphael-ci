@@ -153,8 +153,16 @@ def _power_supply(sys_root: Path, name: str) -> dict[str, str]:
     return values
 
 
-def battery_info(sys_root: Path) -> dict[str, Any]:
-    """PM8150B fuel gauge: microvolts and microamps, tenths of a degree."""
+def battery_info(sys_root: Path, direct_power: bool = False) -> dict[str, Any]:
+    """PM8150B fuel gauge: microvolts and microamps, tenths of a degree.
+
+    With the cell removed and a supply wired to the battery flex, the gauge
+    keeps integrating a discharge the hardware never sees and walks capacity
+    down towards zero. `direct_power` is the panel's switch for that setup: the
+    reported percentage then reads full regardless of the invented value, while
+    voltage, current and temperature keep reporting what the PMIC measures so
+    the real state of the supply stays visible.
+    """
     gauge = _power_supply(sys_root, BATTERY)
     if not gauge:
         return {"available": False, "percent": None, "status": None, "temperature_c": None,
@@ -171,10 +179,17 @@ def battery_info(sys_root: Path) -> dict[str, Any]:
     current = number("CURRENT_NOW")  # microamps
     online = [n for n in ("usb", "ac", "wireless")
               if (_read_text(sys_root / "class" / "power_supply" / n / "online") or "0") != "0"]
+    status = gauge.get("STATUS")
+    if direct_power:
+        # Only the invented fields are overridden. Charging status is reported
+        # as Full rather than Charging because there is no charge current: the
+        # supply holds the rail up, it does not top a cell.
+        capacity = 100
+        status = "Full"
     return {
         "available": True,
         "percent": capacity,
-        "status": gauge.get("STATUS"),
+        "status": status,
         "charge_type": gauge.get("CHARGE_TYPE"),
         "temperature_c": round(temperature / 10, 1) if temperature is not None else None,
         "voltage_v": round(voltage / 1_000_000, 3) if voltage is not None else None,
@@ -795,6 +810,12 @@ TOGGLES = {
     "blank-screen": {
         "unit": "blank_screen.service",
     },
+    # Oneshot with RemainAfterExit, so `enable` on its own leaves the mounts
+    # unmade until the next boot. This toggle starts and stops the unit.
+    "direct-power": {
+        "unit": "direct_power.service",
+        "activate": True,
+    },
 }
 
 
@@ -834,9 +855,12 @@ def toggle_set(run: Callable[..., Any], name: str, want: bool) -> tuple[bool, st
     if not isinstance(want, bool):
         return False, "bad request"
     if want:
-        # Enabling alone is enough: starting the unit would blank the screen
-        # 15 s later, which nobody wants triggered by flipping a switch.
-        command = [SYSTEMCTL, "enable", spec["unit"]]
+        # Enabling alone is enough for the blanker: starting the unit would
+        # blank the screen 15 s later, which nobody wants triggered by
+        # flipping a switch. A unit marked activate has to run now instead,
+        # because its work happens at start and not at boot.
+        command = [SYSTEMCTL, "enable", "--now", spec["unit"]] if spec.get("activate") \
+            else [SYSTEMCTL, "enable", spec["unit"]]
     else:
         # --now also stops a sleep that is already counting down.
         command = [SYSTEMCTL, "disable", "--now", spec["unit"]]
@@ -963,6 +987,10 @@ class Collector:
             storage = storage_info(self.proc_root)
             total_bytes = sum(r["total_bytes"] for r in storage)
             used_bytes = sum(r["used_bytes"] for r in storage)
+            settings = self._settings()
+            # The battery card has to agree with the switch, so resolve the
+            # toggle once and hand the answer to both.
+            direct_power = bool((settings.get("direct-power") or {}).get("enabled"))
             return {
                 "collected_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                 "device": {"name": DEVICE_NAME, "soc": SOC_MODEL, "hostname": os.uname().nodename,
@@ -970,7 +998,7 @@ class Collector:
                            "distro": distro_info(),
                            "login_user": _user_name(KILL_UID) if os.getuid() == 0 else pwd.getpwuid(os.getuid()).pw_name},
                 "uptime_seconds": uptime_seconds(self.proc_root),
-                "battery": battery_info(self.sys_root),
+                "battery": battery_info(self.sys_root, direct_power),
                 "cpu": {"percent": total_percent, "logical_cores": self.cpu_count, "cores": cores,
                         "clusters": cpu_clusters(self.sys_root), "loadavg": loadavg(self.proc_root),
                         "mode": cpu_mode(self.run)},
@@ -984,7 +1012,7 @@ class Collector:
                 "services": self._services(),
                 "containers": self._docker(),
                 "firewall": self._firewall(),
-                "settings": self._settings(),
+                "settings": settings,
                 "processes": rows,
             }
 
@@ -993,6 +1021,7 @@ class Collector:
         if self._settings_cache and now - self._settings_cache[0] < 5:
             return self._settings_cache[1]
         value = {"blank-screen": toggle_state(self.run, "blank-screen"),
+                 "direct-power": toggle_state(self.run, "direct-power"),
                  "panel-version": panel_version()}
         self._settings_cache = (now, value)
         return value

@@ -662,6 +662,9 @@ const I18N = {
     blankName: '自动熄屏',
     blankDesc: '开机 15 秒后关闭屏幕，减少 OLED 烧屏和待机耗电。开启后从下次开机生效；关闭会立刻停止并取消自启。',
     blankOn: '已开启', blankOff: '已关闭',
+    directName: '直供电模式',
+    directDesc: '拆掉电池、从电池小板直接供电时开启。系统会把电量报告为 100%，避免按虚假的放电曲线关机。'
+      + '电压、电流和温度仍显示实测值。开启后立即生效，重启后保留。',
     unitMissing: '设备上没有这个单元',
     toggleBusy: '正在切换…',
   },
@@ -719,6 +722,10 @@ const I18N = {
     blankDesc: 'Blanks the display 15 s after boot to limit OLED burn-in and standby drain. '
       + 'Turning it on takes effect at the next boot; turning it off also cancels a pending blank.',
     blankOn: 'On', blankOff: 'Off',
+    directName: 'Direct power',
+    directDesc: 'For a phone running on a supply wired to the battery flex with the cell removed. '
+      + 'The system reports 100% so the invented discharge curve cannot shut it down; voltage, '
+      + 'current and temperature still show real measurements. Applies at once and survives a reboot.',
     unitMissing: 'This unit is missing on the device',
     toggleBusy: 'Switching…',
   },
@@ -1099,9 +1106,43 @@ async function dockerAction(container, action) {
   }
 }
 
+function toggleRow(key, info, fallbackUnit) {
+  const available = info.available === true;
+  const on = available && info.enabled === true;
+  const row = document.createElement('div');
+  row.className = 'toggle' + (on ? ' on' : '');
+
+  const left = document.createElement('div');
+  left.style.minWidth = '0';
+  const name = document.createElement('div');
+  name.className = 'tname';
+  name.textContent = t(`${key}Name`);
+  const desc = document.createElement('div');
+  desc.className = 'tstate';
+  desc.textContent = available ? t(`${key}Desc`) : t('unitMissing');
+  const unit = document.createElement('div');
+  unit.className = 'tunit';
+  unit.textContent = info.unit || fallbackUnit;
+  left.append(name, desc, unit);
+
+  const sw = document.createElement('button');
+  sw.className = 'switch' + (on ? ' on' : '');
+  sw.type = 'button';
+  sw.setAttribute('role', 'switch');
+  sw.setAttribute('aria-checked', String(on));
+  sw.setAttribute('aria-label', t(`${key}Name`));
+  sw.disabled = !available || state.toggleBusy;
+  // info.name is the API key; the translation keys add Name/Desc to it.
+  sw.addEventListener('click', () => setToggle(info.name, !on));
+
+  row.append(left, sw);
+  return row;
+}
+
 function renderSettings(settings) {
   const box = $('settings-toggles');
   const blank = settings['blank-screen'] || {};
+  const direct = settings['direct-power'] || {};
   const device = state.latest?.device || {};
   text('panel-version', settings['panel-version'] || '—');
   text('panel-device', device.name || '—');
@@ -1112,34 +1153,10 @@ function renderSettings(settings) {
     : t('unitMissing'));
   $('settings-chip').className = 'chip' + (available ? (blank.enabled ? '' : ' warn') : ' bad');
 
-  box.replaceChildren();
-  const row = document.createElement('div');
-  row.className = 'toggle' + (available && blank.enabled ? ' on' : '');
-
-  const left = document.createElement('div');
-  left.style.minWidth = '0';
-  const name = document.createElement('div');
-  name.className = 'tname';
-  name.textContent = t('blankName');
-  const desc = document.createElement('div');
-  desc.className = 'tstate';
-  desc.textContent = available ? t('blankDesc') : t('unitMissing');
-  const unit = document.createElement('div');
-  unit.className = 'tunit';
-  unit.textContent = blank.unit || 'blank_screen.service';
-  left.append(name, desc, unit);
-
-  const sw = document.createElement('button');
-  sw.className = 'switch' + (available && blank.enabled ? ' on' : '');
-  sw.type = 'button';
-  sw.setAttribute('role', 'switch');
-  sw.setAttribute('aria-checked', String(available && blank.enabled));
-  sw.setAttribute('aria-label', t('blankName'));
-  sw.disabled = !available || state.toggleBusy;
-  sw.addEventListener('click', () => setToggle('blank-screen', !(blank.enabled === true)));
-
-  row.append(left, sw);
-  box.append(row);
+  box.replaceChildren(
+    toggleRow('blank', { ...blank, name: 'blank-screen' }, 'blank_screen.service'),
+    toggleRow('direct', { ...direct, name: 'direct-power' }, 'direct_power.service'),
+  );
 }
 
 async function setToggle(name, enabled) {

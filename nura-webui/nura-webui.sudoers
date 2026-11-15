@@ -1,7 +1,7 @@
-# Let the panel toggle the screen blanker and set CPU/GPU frequency policy
-# without running as root.
+# Let the panel toggle the screen blanker, set CPU/GPU frequency policy and
+# switch direct-power reporting on or off without running as root.
 #
-# Both rules are keyed on uid 10000 (see nura-webui.service) because the account
+# Every rule is keyed on uid 10000 (see nura-webui.service) because the account
 # name differs between installs.
 #
 # sudo matches the whole command line, so anything else still needs a password:
@@ -10,7 +10,14 @@
 # The frequency helper takes an argument, so its sudoers entry is a wildcard on
 # the value. That is safe because the script only accepts the three fixed mode
 # names and re-validates them itself.
+#
+# The direct-power unit is oneshot with RemainAfterExit, so `enable` alone
+# would leave the bind mounts unmade until the next boot; the panel starts it
+# through the same fixed command line. Both verbs are granted explicitly rather
+# than as a wildcard so no other unit can be reached through them.
 #10000 ALL=(root) NOPASSWD: \
     /usr/bin/systemctl enable blank_screen.service, \
     /usr/bin/systemctl disable --now blank_screen.service, \
+    /usr/bin/systemctl enable --now direct_power.service, \
+    /usr/bin/systemctl disable --now direct_power.service, \
     /usr/libexec/nura-cpufreq mode *
