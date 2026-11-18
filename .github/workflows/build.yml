@@ -334,8 +334,10 @@ jobs:
             echo
             echo '```bash'
             echo "gunzip $DEVICE-$VERSION-$UI.img.gz"
-            echo "fastboot flash userdata $DEVICE.img"
+            echo "fastboot erase dtbo"
             echo "fastboot flash boot boot.img"
+            echo "fastboot flash userdata $DEVICE.img"
+            echo "fastboot reboot"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -364,8 +366,10 @@ jobs:
 
           \`\`\`bash
           gunzip $DEVICE-$VERSION-$UI.img.gz
-          fastboot flash userdata $DEVICE.img
+          fastboot erase dtbo
           fastboot flash boot boot.img
+          fastboot flash userdata $DEVICE.img
+          fastboot reboot
           \`\`\`"
 
           # 资产接口只接受文件，显式列出来避免混进目录

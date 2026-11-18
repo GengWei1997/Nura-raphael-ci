@@ -157,7 +157,7 @@ jobs:
           装的时候带 \`--allow-untrusted\`，装完自动重启：
 
           \`\`\`bash
-          apk add --allow-untrusted --upgrade $APK_NAME
+          sudo apk add --allow-untrusted --upgrade $APK_NAME
           \`\`\`"
 
           gh release create "$tag" \

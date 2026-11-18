@@ -56,8 +56,10 @@ linux-xiaomi-raphael-7.3-r0.apk
 
 ```bash
 gunzip xiaomi-raphael-7.3-phosh.img.gz    # 解出 xiaomi-raphael.img
-fastboot flash userdata xiaomi-raphael.img
+fastboot erase dtbo
 fastboot flash boot boot.img
+fastboot flash userdata xiaomi-raphael.img
+fastboot reboot
 ```
 
 ## nura-webui 面板
@@ -86,14 +88,14 @@ artifact 里下。
 第一次装（设备上还没有这个包，或者是从旧的测试版降级）：
 
 ```bash
-apk add --allow-untrusted nura-webui-1.0-r0.apk
+sudo apk add --allow-untrusted nura-webui-1.0-r0.apk
 ```
 
 之后每次发版，在 Actions 里把 `pkgrel` 递增（`1`、`2`、`3`……），得到
 `1.0-r1`、`1.0-r2`，然后：
 
 ```bash
-apk add --allow-untrusted --upgrade nura-webui-1.0-r1.apk
+sudo apk add --allow-untrusted --upgrade nura-webui-1.0-r1.apk
 ```
 
 **`pkgrel` 必须递增，不能一直用 0。** apk 按版本号判断，同版本号装同版本号会
